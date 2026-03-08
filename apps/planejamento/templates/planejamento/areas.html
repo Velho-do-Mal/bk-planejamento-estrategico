@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Áreas — Planejamento{% endblock %}
+{% block page_title %}Planejamento Estratégico{% endblock %}
+{% block page_sub %}Áreas e Responsáveis{% endblock %}
+
+{% block extra_css %}
+<style>
+.section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
+.editable-table{width:100%;border-collapse:collapse;font-size:13px}
+.editable-table th{background:#1565C0;color:white;padding:8px 10px}
+.editable-table td{padding:0;border-bottom:1px solid #E2E8F0}
+.editable-table td input,.editable-table td select{width:100%;padding:7px 10px;border:none;background:transparent;font-size:13px;font-family:inherit}
+.editable-table td input:focus,.editable-table td select:focus{background:#EFF6FF;outline:none}
+.editable-table tr:nth-child(even) td{background:#F8FAFC}
+.btn-danger{background:#EF4444;color:white;border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:12px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-card">
+  <div class="section-title">➕ Adicionar nova Área</div>
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="action" value="add">
+    <div class="form-row-4" style="margin-bottom:12px">
+      <div><label class="form-label">Área *</label><input type="text" name="area" class="form-control" required></div>
+      <div>
+        <label class="form-label">Responsável</label>
+        {% if dados.partners %}
+        <select name="responsavel" class="form-control">
+          {% for p in dados.partners %}<option>{{ p.nome }}</option>{% endfor %}
+          <option value="">(outro)</option>
+        </select>
+        {% else %}
+        <input type="text" name="responsavel" class="form-control">
+        {% endif %}
+      </div>
+      <div><label class="form-label">E-mail</label><input type="email" name="email" class="form-control"></div>
+      <div><label class="form-label">Observações</label><input type="text" name="observacoes" class="form-control"></div>
+    </div>
+    <button type="submit" class="btn btn-primary">➕ Adicionar Área</button>
+  </form>
+</div>
+
+{% if dados.areas %}
+<div class="section-card">
+  <div class="section-title">🏢 Tabela de Áreas (editável)</div>
+  <form method="post" id="form-areas">{% csrf_token %}
+    <input type="hidden" name="action" value="save_table">
+    <input type="hidden" name="rows_json" id="rows-json">
+    <div style="overflow-x:auto">
+    <table class="editable-table" id="areas-table">
+      <thead><tr><th>Área</th><th>Responsável</th><th>E-mail</th><th>Observações</th><th>Ação</th></tr></thead>
+      <tbody>
+      {% for a in dados.areas %}
+      <tr>
+        <td><input type="text" value="{{ a.area }}" data-field="area"></td>
+        <td>
+          {% if dados.partners %}
+          <select data-field="responsavel">
+            {% for p in dados.partners %}
+            <option {% if p.nome == a.responsavel %}selected{% endif %}>{{ p.nome }}</option>
+            {% endfor %}
+          </select>
+          {% else %}
+          <input type="text" value="{{ a.responsavel }}" data-field="responsavel">
+          {% endif %}
+        </td>
+        <td><input type="text" value="{{ a.email }}" data-field="email"></td>
+        <td><input type="text" value="{{ a.observacoes }}" data-field="observacoes"></td>
+        <td style="padding:6px 10px">
+          <form method="post" style="display:inline">{% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="idx" value="{{ forloop.counter0 }}">
+            <button type="submit" class="btn-danger" onclick="return confirm('Excluir?')">🗑️</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <br>
+    <button type="button" class="btn btn-primary" onclick="saveTable()">💾 Salvar Áreas</button>
+  </form>
+</div>
+{% else %}
+<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:14px;color:#1E40AF;font-size:13px">
+  ℹ️ Nenhuma área cadastrada.
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function saveTable() {
+  var rows = [];
+  document.querySelectorAll('#areas-table tbody tr').forEach(function(tr) {
+    var row = {};
+    tr.querySelectorAll('[data-field]').forEach(function(el) {
+      row[el.dataset.field] = el.value;
+    });
+    rows.push(row);
+  });
+  document.getElementById('rows-json').value = JSON.stringify(rows);
+  document.getElementById('form-areas').submit();
+}
+</script>
+{% endblock %}

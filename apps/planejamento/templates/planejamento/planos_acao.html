@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}Planos de Ação — Planejamento{% endblock %}
+{% block page_title %}Planejamento Estratégico{% endblock %}
+{% block page_sub %}Planos de Ação{% endblock %}
+
+{% block extra_css %}
+<style>
+.section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:12px}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi-sm{background:white;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06);border-top:2px solid #1565C0}
+.kpi-sm .val{font-size:22px;font-weight:700;color:#1565C0}.kpi-sm .lbl{font-size:10px;color:#64748B;text-transform:uppercase}
+.action-table{width:100%;border-collapse:collapse;font-size:12px}
+.action-table th{background:#1565C0;color:white;padding:7px 8px;white-space:nowrap;font-weight:500}
+.action-table td{padding:0;border-bottom:1px solid #E2E8F0}
+.action-table td input,.action-table td select{width:100%;padding:5px 7px;border:none;background:transparent;font-size:12px;font-family:inherit}
+.action-table td input:focus,.action-table td select:focus{background:#EFF6FF;outline:none}
+.action-table tr:nth-child(even) td{background:#F8FAFC}
+.action-table .semaforo{width:24px;text-align:center;font-size:14px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-concluido{background:#D1FAE5;color:#065F46}
+.badge-andamento{background:#FEF3C7;color:#92400E}
+.badge-pendente{background:#F1F5F9;color:#475569}
+.badge-atrasado{background:#FEE2E2;color:#991B1B}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.accordion{border:1px solid #E2E8F0;border-radius:8px;margin-bottom:10px;overflow:hidden}
+.accordion-header{background:#F8FAFC;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;color:#1E3A5F;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.accordion-body{display:none;padding:16px;border-top:1px solid #E2E8F0}
+.accordion-body.open{display:block}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- KPIs -->
+<div class="kpi-row">
+  <div class="kpi-sm"><div class="val">{{ n_total }}</div><div class="lbl">Total</div></div>
+  <div class="kpi-sm"><div class="val" style="color:#43A047">{{ n_concluidos }}</div><div class="lbl">Concluídos</div></div>
+  <div class="kpi-sm"><div class="val" style="color:#FB8C00">{{ n_andamento }}</div><div class="lbl">Em Andamento</div></div>
+  <div class="kpi-sm"><div class="val" style="color:{% if n_atrasados > 0 %}#E53935{% else %}#43A047{% endif %}">{{ n_atrasados }}</div><div class="lbl">Atrasados</div></div>
+</div>
+
+<!-- Formulário adicionar -->
+<div class="accordion">
+  <div class="accordion-header" onclick="toggleAccordion('acc-add')">
+    ➕ Adicionar novo Plano de Ação
+    <span id="acc-add-icon">▼</span>
+  </div>
+  <div class="accordion-body" id="acc-add">
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="action" value="add">
+      <div class="form-row-3">
+        <div><label class="form-label">Título *</label><input type="text" name="titulo" class="form-control" required></div>
+        <div>
+          <label class="form-label">OKR Vinculada</label>
+          {% if dados.okrs %}
+          <select name="okr" class="form-control">
+            <option value="">(nenhuma)</option>
+            {% for o in dados.okrs %}<option>{{ o.nome }}</option>{% endfor %}
+          </select>
+          {% else %}<input type="text" name="okr" class="form-control">{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Área</label>
+          {% if dados.areas %}
+          <select name="area" class="form-control">
+            {% for a in dados.areas %}<option>{{ a.area }}</option>{% endfor %}
+          </select>
+          {% else %}<input type="text" name="area" class="form-control">{% endif %}
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div>
+          <label class="form-label">Responsável</label>
+          {% if dados.partners %}
+          <select name="responsavel" class="form-control">
+            {% for p in dados.partners %}<option>{{ p.nome }}</option>{% endfor %}
+          </select>
+          {% else %}<input type="text" name="responsavel" class="form-control">{% endif %}
+        </div>
+        <div><label class="form-label">Data Início</label><input type="date" name="data_inicio" class="form-control"></div>
+        <div><label class="form-label">Data Vencimento</label><input type="date" name="data_vencimento" class="form-control"></div>
+      </div>
+      <div class="form-row-3">
+        <div>
+          <label class="form-label">Status</label>
+          <select name="status" class="form-control">
+            {% for s in status_opts %}<option>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div><label class="form-label">Descrição</label><input type="text" name="descricao" class="form-control"></div>
+        <div><label class="form-label">Como Fazer</label><input type="text" name="como_fazer" class="form-control"></div>
+      </div>
+      <div style="margin-bottom:12px"><label class="form-label">Observações</label><input type="text" name="observacoes" class="form-control"></div>
+      <button type="submit" class="btn btn-primary">➕ Adicionar Plano</button>
+    </form>
+  </div>
+</div>
+
+<!-- Legenda semáforo -->
+<div style="font-size:12px;color:#64748B;margin-bottom:10px">
+  🟢 Concluído &nbsp;&nbsp; 🟡 Vence em ≤2 dias &nbsp;&nbsp; 🔴 Atrasado &nbsp;&nbsp; ⚪ No prazo
+</div>
+
+<!-- Tabela editável -->
+<div class="section-card">
+  <div class="section-title">📋 Tabela de Planos (editável)</div>
+  <p style="font-size:12px;color:#64748B;margin-bottom:8px">Edite nas células. Marque <strong>Excluir</strong> para remover. Clique em 💾 Salvar.</p>
+  <form method="post" id="form-actions">{% csrf_token %}
+    <input type="hidden" name="action" value="save_table">
+    <input type="hidden" name="rows_json" id="rows-json">
+    <div style="overflow-x:auto">
+    <table class="action-table" id="actions-table">
+      <thead>
+        <tr>
+          <th class="semaforo"></th>
+          <th style="min-width:160px">Título</th>
+          <th>Área</th>
+          <th>Responsável</th>
+          <th>OKR</th>
+          <th>Início</th>
+          <th>Vencimento</th>
+          <th>Status</th>
+          <th>Descrição</th>
+          <th>Como Fazer</th>
+          <th>Obs.</th>
+          <th>Excluir</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for a in dados.actions %}
+      {% with dv=a.data_vencimento %}
+      <tr>
+        <td class="semaforo" style="padding:4px 6px;text-align:center">
+          {% if a.status == 'Concluído' %}🟢
+          {% elif dv and dv < today %}🔴
+          {% else %}⚪{% endif %}
+        </td>
+        <td><input type="text" value="{{ a.titulo }}" data-field="titulo" style="min-width:140px"></td>
+        <td>
+          {% if dados.areas %}
+          <select data-field="area" style="min-width:100px">
+            {% for ar in dados.areas %}<option {% if ar.area == a.area %}selected{% endif %}>{{ ar.area }}</option>{% endfor %}
+          </select>
+          {% else %}<input type="text" value="{{ a.area }}" data-field="area">{% endif %}
+        </td>
+        <td>
+          {% if dados.partners %}
+          <select data-field="responsavel" style="min-width:110px">
+            {% for p in dados.partners %}<option {% if p.nome == a.responsavel %}selected{% endif %}>{{ p.nome }}</option>{% endfor %}
+          </select>
+          {% else %}<input type="text" value="{{ a.responsavel }}" data-field="responsavel">{% endif %}
+        </td>
+        <td>
+          {% if dados.okrs %}
+          <select data-field="okr" style="min-width:120px">
+            <option value="">—</option>
+            {% for o in dados.okrs %}<option {% if o.nome == a.okr %}selected{% endif %}>{{ o.nome }}</option>{% endfor %}
+          </select>
+          {% else %}<input type="text" value="{{ a.okr }}" data-field="okr">{% endif %}
+        </td>
+        <td><input type="date" value="{{ a.data_inicio }}" data-field="data_inicio" style="min-width:120px"></td>
+        <td><input type="date" value="{{ a.data_vencimento }}" data-field="data_vencimento" style="min-width:120px"></td>
+        <td>
+          <select data-field="status">
+            {% for s in status_opts %}<option {% if s == a.status %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </td>
+        <td><input type="text" value="{{ a.descricao }}" data-field="descricao" style="min-width:140px"></td>
+        <td><input type="text" value="{{ a.como_fazer }}" data-field="como_fazer" style="min-width:120px"></td>
+        <td><input type="text" value="{{ a.observacoes }}" data-field="observacoes" style="min-width:100px"></td>
+        <td style="padding:4px 6px;text-align:center"><input type="checkbox" data-field="excluir" style="width:auto;padding:0"></td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr><td colspan="12" style="padding:16px;text-align:center;color:#94A3B8">Nenhum plano cadastrado.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <br>
+    <button type="button" class="btn btn-primary" onclick="saveTable()">💾 Salvar alterações</button>
+    <span style="font-size:12px;color:#64748B;margin-left:10px">💡 Use o formulário acima para adicionar novos planos.</span>
+  </form>
+</div>
+
+<!-- Analytics -->
+{% if dados.actions %}
+<div class="section-card">
+  <div class="section-title">📊 Painel de Acompanhamento</div>
+  <div class="grid-2">
+    {% if fig_status_json %}
+    <div><div id="chart-status"></div></div>
+    {% endif %}
+    {% if fig_resp_json %}
+    <div><div id="chart-resp"></div></div>
+    {% else %}
+    <div style="display:flex;align-items:center;justify-content:center;color:#43A047;font-weight:600">✅ Nenhum plano atrasado!</div>
+    {% endif %}
+  </div>
+</div>
+
+{% if fig_timeline_json %}
+<div class="section-card">
+  <div class="section-title">📅 Linha do Tempo (Gantt)</div>
+  <div id="chart-timeline"></div>
+</div>
+{% endif %}
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+function toggleAccordion(id) {
+  var body = document.getElementById(id);
+  var icon = document.getElementById(id + '-icon');
+  if (body.classList.contains('open')) {
+    body.classList.remove('open'); if(icon) icon.textContent = '▼';
+  } else {
+    body.classList.add('open'); if(icon) icon.textContent = '▲';
+  }
+}
+
+function saveTable() {
+  var rows = [];
+  document.querySelectorAll('#actions-table tbody tr').forEach(function(tr) {
+    var row = {};
+    tr.querySelectorAll('[data-field]').forEach(function(el) {
+      row[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    if (row.titulo) rows.push(row);
+  });
+  document.getElementById('rows-json').value = JSON.stringify(rows);
+  document.getElementById('form-actions').submit();
+}
+
+{% if fig_status_json %}
+Plotly.newPlot('chart-status',
+  JSON.parse('{{ fig_status_json|escapejs }}').data,
+  JSON.parse('{{ fig_status_json|escapejs }}').layout,
+  {responsive:true,displayModeBar:false});
+{% endif %}
+{% if fig_resp_json %}
+Plotly.newPlot('chart-resp',
+  JSON.parse('{{ fig_resp_json|escapejs }}').data,
+  JSON.parse('{{ fig_resp_json|escapejs }}').layout,
+  {responsive:true,displayModeBar:false});
+{% endif %}
+{% if fig_timeline_json %}
+Plotly.newPlot('chart-timeline',
+  JSON.parse('{{ fig_timeline_json|escapejs }}').data,
+  JSON.parse('{{ fig_timeline_json|escapejs }}').layout,
+  {responsive:true,displayModeBar:false});
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block full_page %}
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#1565C0,#00897B);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:22px;margin:0 auto 10px">BK</div>
+      <h1>BK Planejamento</h1>
+      <p>Planejamento Estratégico 36 meses</p>
+    </div>
+
+    {% if error %}
+    <div class="login-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label class="form-label">USUÁRIO</label>
+      <input type="text" name="username" class="form-control" autofocus required>
+      <label class="form-label">SENHA</label>
+      <input type="password" name="password" class="form-control" required>
+      <button type="submit" class="login-btn">Entrar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

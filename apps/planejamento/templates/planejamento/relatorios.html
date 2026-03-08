@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Relatórios — Planejamento{% endblock %}
+{% block page_title %}Planejamento Estratégico{% endblock %}
+{% block page_sub %}Relatórios e Direcionamento Estratégico{% endblock %}
+
+{% block extra_css %}
+<style>
+.section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:12px}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.field strong{display:block;font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.field span{font-size:13px}
+.okr-saude-table{width:100%;border-collapse:collapse;font-size:13px}
+.okr-saude-table th{background:#1565C0;color:white;padding:8px 10px}
+.okr-saude-table td{padding:7px 10px;border-bottom:1px solid #E2E8F0}
+.okr-saude-table tr:nth-child(even) td{background:#F8FAFC}
+.rec-item{padding:8px 12px;border-radius:6px;font-size:13px;margin-bottom:6px;background:#F8FAFC;border-left:3px solid #1565C0}
+.export-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.export-btn{background:white;border:1px solid #E2E8F0;border-radius:8px;padding:16px;text-align:center;text-decoration:none;color:#1E3A5F;font-size:13px;font-weight:500;transition:all .2s;display:block}
+.export-btn:hover{border-color:#1565C0;background:#EFF6FF;color:#1565C0;text-decoration:none}
+.export-btn .icon{font-size:24px;display:block;margin-bottom:6px}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Norte Estratégico -->
+<div class="section-card">
+  <div class="section-title">🧭 Norte Estratégico</div>
+  <div class="field-grid">
+    <div class="field"><strong>Visão</strong><span>{{ dados.strategic.visao|default:"—" }}</span></div>
+    <div class="field"><strong>Missão</strong><span>{{ dados.strategic.missao|default:"—" }}</span></div>
+    <div class="field"><strong>Proposta de Valor</strong><span>{{ dados.strategic.proposta_valor|default:"—" }}</span></div>
+    <div class="field"><strong>Público-Alvo</strong><span>{{ dados.strategic.publico_alvo|default:"—" }}</span></div>
+    <div class="field"><strong>Diferenciais</strong><span>{{ dados.strategic.diferenciais|default:"—" }}</span></div>
+    <div class="field"><strong>Pilares</strong><span>{{ dados.strategic.pilares|default:"—" }}</span></div>
+  </div>
+  {% if dados.strategic.objetivos_estrategicos %}
+  <div><strong style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.4px">Objetivos Estratégicos</strong>
+  <p style="font-size:13px;margin:4px 0 0">{{ dados.strategic.objetivos_estrategicos }}</p></div>
+  {% endif %}
+</div>
+
+<!-- Saúde OKRs -->
+{% if okr_saude %}
+<div class="section-card">
+  <div class="section-title">📈 Saúde das OKRs</div>
+  <table class="okr-saude-table">
+    <thead><tr><th></th><th>OKR</th><th>Área</th><th>Unidade</th><th>% Realização</th><th>Meses Preenchidos</th></tr></thead>
+    <tbody>
+    {% for o in okr_saude %}
+    <tr>
+      <td style="text-align:center">{{ o.semaforo }}</td>
+      <td>{{ o.nome }}</td>
+      <td>{{ o.area }}</td>
+      <td>{{ o.unidade }}</td>
+      <td style="color:{{ o.color }};font-weight:700">{{ o.pct }}%</td>
+      <td>{{ o.filled }}/36 ({{ o.filled|floatformat:0 }}%)</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Recomendações -->
+<div class="section-card">
+  <div class="section-title">🧠 Recomendações Automáticas</div>
+  {% for r in recs %}
+  <div class="rec-item">{{ r }}</div>
+  {% endfor %}
+</div>
+
+<!-- Exportar -->
+<div class="section-card">
+  <div class="section-title">📥 Exportar Relatório</div>
+  <div class="export-grid">
+    <a href="{% url 'planejamento:export_html' %}" class="export-btn">
+      <span class="icon">🌐</span>
+      Relatório HTML
+    </a>
+    <a href="{% url 'planejamento:export_excel' %}" class="export-btn">
+      <span class="icon">📊</span>
+      Excel Completo
+    </a>
+    <a href="{% url 'planejamento:export_zip' %}" class="export-btn">
+      <span class="icon">🗜️</span>
+      CSVs ZIP
+    </a>
+    <a href="{% url 'planejamento:export_json' %}" class="export-btn">
+      <span class="icon">⬇️</span>
+      Exportar JSON
+    </a>
+  </div>
+</div>
+
+<!-- Import JSON -->
+<div class="section-card">
+  <div class="section-title">📤 Importar JSON</div>
+  <form method="post" action="{% url 'planejamento:import_json' %}" enctype="multipart/form-data">{% csrf_token %}
+    <div style="display:flex;gap:12px;align-items:center">
+      <input type="file" name="json_file" accept=".json" class="form-control" style="max-width:320px">
+      <button type="submit" class="btn btn-primary">📤 Importar</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

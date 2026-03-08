@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Estratégia — Planejamento{% endblock %}
+{% block page_title %}Planejamento Estratégico{% endblock %}
+{% block page_sub %}Informações Estratégicas{% endblock %}
+
+{% block extra_css %}
+<style>
+.section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:14px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.tip-box{background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:14px;font-size:13px;color:#0C4A6E;margin-top:14px}
+.tip-box h4{margin:0 0 8px;font-size:13px;color:#0369A1}
+.tip-box li{margin-bottom:4px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="section-card">
+  <div class="section-title">🧭 Norte Estratégico da Empresa</div>
+  <p style="font-size:13px;color:#64748B;margin-bottom:16px">O 'norte' da empresa. Alimenta relatórios e dá coerência a OKRs e planos de ação.</p>
+  <form method="post">{% csrf_token %}
+    <div class="form-grid">
+      <div>
+        <label class="form-label">🎯 Visão (onde queremos chegar)</label>
+        <textarea name="visao" class="form-control" rows="3">{{ dados.strategic.visao }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">🚀 Missão (por que existimos)</label>
+        <textarea name="missao" class="form-control" rows="3">{{ dados.strategic.missao }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">💎 Proposta de Valor</label>
+        <textarea name="proposta_valor" class="form-control" rows="3">{{ dados.strategic.proposta_valor }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">👤 Público-alvo / ICP</label>
+        <textarea name="publico_alvo" class="form-control" rows="3">{{ dados.strategic.publico_alvo }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">⭐ Valores (comportamentos inegociáveis)</label>
+        <textarea name="valores" class="form-control" rows="3">{{ dados.strategic.valores }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">🏆 Posicionamento</label>
+        <textarea name="posicionamento" class="form-control" rows="3">{{ dados.strategic.posicionamento }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">⚡ Diferenciais Competitivos</label>
+        <textarea name="diferenciais" class="form-control" rows="3">{{ dados.strategic.diferenciais }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">🏛️ Pilares Estratégicos (3–6)</label>
+        <textarea name="pilares" class="form-control" rows="3">{{ dados.strategic.pilares }}</textarea>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label class="form-label">📋 Objetivos Estratégicos (alto nível)</label>
+      <textarea name="objetivos_estrategicos" class="form-control" rows="4">{{ dados.strategic.objetivos_estrategicos }}</textarea>
+    </div>
+    <div style="margin-bottom:16px">
+      <label class="form-label">📝 Notas / Hipóteses / Restrições</label>
+      <textarea name="notas" class="form-control" rows="3">{{ dados.strategic.notas }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">💾 Salvar Estratégia</button>
+  </form>
+</div>
+
+<div class="tip-box">
+  <h4>💡 Modelo rápido para preenchimento</h4>
+  <ul>
+    <li><strong>Visão:</strong> verbo + impacto + prazo. Ex.: "Ser referência regional em engenharia elétrica industrial até 2029"</li>
+    <li><strong>Missão:</strong> público + entrega + diferencial. Ex.: "Ajudar indústrias a reduzir custos com projetos elétricos seguros e inovadores"</li>
+    <li><strong>Pilares:</strong> 4–6 temas. Ex.: Crescimento Comercial, Excelência Técnica, Inovação/BIM, Pessoas, Sustentabilidade</li>
+    <li><strong>Objetivos:</strong> conecte diretamente com OKRs — cada objetivo deve ter pelo menos 1 OKR mensurável</li>
+  </ul>
+</div>
+{% endblock %}
