@@ -7,16 +7,16 @@
 <style>
 .plan-hero{background:linear-gradient(135deg,#1565C0 0%,#00897B 100%);padding:20px 24px;border-radius:10px;margin-bottom:20px;color:white}
 .plan-hero h2{margin:0;font-size:20px;font-weight:700}.plan-hero p{margin:4px 0 0;font-size:13px;opacity:.85}
-.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
-.kpi-card{background:white;border-radius:10px;padding:16px 12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);border-top:3px solid #1565C0}
-.kpi-card .val{font-size:26px;font-weight:700;color:#1565C0}
-.kpi-card .lbl{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.OKR-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.OKR-card{background:white;border-radius:10px;padding:16px 12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06);border-top:3px solid #1565C0}
+.OKR-card .val{font-size:26px;font-weight:700;color:#1565C0}
+.OKR-card .lbl{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
 .chart-card{background:white;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
 .chart-card h4{font-size:13px;font-weight:600;color:#1565C0;margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid #E3F2FD}
 .gauges-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
 .alert-atrasados{background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#991B1B;font-size:13px}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(3,1fr)}.gauges-row{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
+@media(max-width:900px){.OKR-grid{grid-template-columns:repeat(3,1fr)}.gauges-row{grid-template-columns:repeat(2,1fr)}.grid-2{grid-template-columns:1fr}}
 </style>
 {% endblock %}
 
@@ -31,25 +31,25 @@
   <p>Planejamento Estratégico 36 meses — BK Engenharia e Tecnologia</p>
 </div>
 
-<!-- KPIs -->
-<div class="kpi-grid">
-  <div class="kpi-card">
+<!-- OKRs -->
+<div class="OKR-grid">
+  <div class="OKR-card">
     <div class="val">{{ n_okrs }}</div>
     <div class="lbl">OKRs</div>
   </div>
-  <div class="kpi-card">
+  <div class="OKR-card">
     <div class="val" style="color:{{ pct_real_color }}">{{ pct_real }}%</div>
     <div class="lbl">Realização Geral</div>
   </div>
-  <div class="kpi-card">
+  <div class="OKR-card">
     <div class="val">{{ n_actions }}</div>
     <div class="lbl">Planos de Ação</div>
   </div>
-  <div class="kpi-card">
+  <div class="OKR-card">
     <div class="val" style="color:#43A047">{{ n_concluidos }}</div>
     <div class="lbl">Concluídos</div>
   </div>
-  <div class="kpi-card">
+  <div class="OKR-card">
     <div class="val" style="color:{% if n_atrasados > 0 %}#E53935{% else %}#43A047{% endif %}">{{ n_atrasados }}</div>
     <div class="lbl">Atrasados</div>
   </div>
