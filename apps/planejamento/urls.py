@@ -8,6 +8,7 @@ urlpatterns = [
     path('socios/', views.socios, name='socios'),
     path('estrategia/', views.estrategia, name='estrategia'),
     path('areas/', views.areas, name='areas'),
+    path('okrs/', views.okrs, name='okrs'),
     path('swot/', views.swot, name='swot'),
     path('okrs/', views.okrs, name='okrs'),
     path('okrs/detail/<str:nome>/', views.okr_detail_json, name='okr_detail_json'),
