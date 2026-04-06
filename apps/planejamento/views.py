@@ -77,6 +77,61 @@ def save_planning(dados: dict):
     obj.save()
 
 
+def _clean_text(value, default=''):
+    return str(value if value is not None else default).strip()
+
+
+def _normalize_partner_rows(rows: list) -> list:
+    normalized = []
+    for row in rows:
+        nome = _clean_text(row.get('nome'))
+        if not nome:
+            continue
+        normalized.append({
+            'nome': nome,
+            'cargo': _clean_text(row.get('cargo')),
+            'email': _clean_text(row.get('email')),
+            'telefone': _clean_text(row.get('telefone')),
+            'observacoes': _clean_text(row.get('observacoes')),
+        })
+    return normalized
+
+
+def _normalize_area_rows(rows: list) -> list:
+    normalized = []
+    for row in rows:
+        area = _clean_text(row.get('area'))
+        if not area:
+            continue
+        normalized.append({
+            'area': area,
+            'responsavel': _clean_text(row.get('responsavel')),
+            'email': _clean_text(row.get('email')),
+            'observacoes': _clean_text(row.get('observacoes')),
+        })
+    return normalized
+
+
+def _group_swot_items(swot_items: list) -> dict:
+    grupos = {
+        'Força': [],
+        'Fraqueza': [],
+        'Oportunidade': [],
+        'Ameaça': [],
+    }
+    for item in swot_items or []:
+        tipo = _clean_text(item.get('tipo'))
+        descricao = _clean_text(item.get('descricao'))
+        prioridade = _clean_text(item.get('prioridade'), 'Média')
+        if tipo in grupos and descricao:
+            grupos[tipo].append({
+                'tipo': tipo,
+                'descricao': descricao,
+                'prioridade': prioridade or 'Média',
+            })
+    return grupos
+
+
 def _safe_date(s) -> Optional[date]:
     if not s:
         return None
@@ -587,7 +642,7 @@ def socios(request):
             rows_json = request.POST.get('rows_json', '[]')
             try:
                 rows = json.loads(rows_json)
-                dados['partners'] = [r for r in rows if r.get('nome', '').strip()]
+                dados['partners'] = _normalize_partner_rows(rows)
                 save_planning(dados)
                 messages.success(request, 'Sócios/Gestores salvos!')
             except Exception as e:
@@ -640,7 +695,7 @@ def areas(request):
             rows_json = request.POST.get('rows_json', '[]')
             try:
                 rows = json.loads(rows_json)
-                dados['areas'] = [r for r in rows if r.get('area', '').strip()]
+                dados['areas'] = _normalize_area_rows(rows)
                 save_planning(dados)
                 messages.success(request, 'Áreas salvas!')
             except Exception as e:
@@ -658,9 +713,15 @@ def swot(request):
             rows_json = request.POST.get('rows_json', '[]')
             try:
                 rows = json.loads(rows_json)
-                dados['swot'] = [r for r in rows
-                                  if r.get('descricao', '').strip()
-                                  and not r.get('excluir', False)]
+                dados['swot'] = [
+                    {
+                        'tipo': _clean_text(r.get('tipo')),
+                        'descricao': _clean_text(r.get('descricao')),
+                        'prioridade': _clean_text(r.get('prioridade'), 'Média') or 'Média',
+                    }
+                    for r in rows
+                    if _clean_text(r.get('descricao')) and not r.get('excluir', False)
+                ]
                 save_planning(dados)
                 messages.success(request, 'SWOT salva!')
             except Exception as e:
@@ -668,9 +729,11 @@ def swot(request):
         return redirect('planejamento:swot')
 
     fig_swot_json = fig_swot_quadrant(dados.get('swot', [])) if dados.get('swot') else None
+    swot_groups = _group_swot_items(dados.get('swot', []))
     return render(request, 'planejamento/swot.html', {
         'dados': dados,
         'fig_swot_json': fig_swot_json,
+        'swot_groups': swot_groups,
         'tipos': ['Força', 'Fraqueza', 'Oportunidade', 'Ameaça'],
         'prioridades': ['Alta', 'Média', 'Baixa'],
     })
@@ -712,13 +775,15 @@ def okrs(request):
                 rows = json.loads(rows_json)
                 for row in rows:
                     nome = row.get('nome', '')
-                    for o in dados['okrs']:
+                    for idx, o in enumerate(dados['okrs']):
                         if o['nome'] == nome:
-                            o = _ensure_okr_meses(o)
+                            dados['okrs'][idx] = _ensure_okr_meses(o)
+                            okr = dados['okrs'][idx]
                             for i in range(36):
                                 key = f'M{i+1:02d}'
                                 if key in row:
-                                    o['meses'][i]['previsto'] = float(row[key] or 0)
+                                    okr['meses'][i]['previsto'] = float(row[key] or 0)
+                            break
                 save_planning(dados)
                 messages.success(request, 'Planejado salvo!')
             except Exception as e:
@@ -730,13 +795,15 @@ def okrs(request):
                 rows = json.loads(rows_json)
                 for row in rows:
                     nome = row.get('nome', '')
-                    for o in dados['okrs']:
+                    for idx, o in enumerate(dados['okrs']):
                         if o['nome'] == nome:
-                            o = _ensure_okr_meses(o)
+                            dados['okrs'][idx] = _ensure_okr_meses(o)
+                            okr = dados['okrs'][idx]
                             for i in range(36):
                                 key = f'M{i+1:02d}'
                                 if key in row:
-                                    o['meses'][i]['realizado'] = float(row[key] or 0)
+                                    okr['meses'][i]['realizado'] = float(row[key] or 0)
+                            break
                 save_planning(dados)
                 messages.success(request, 'Realizado salvo!')
             except Exception as e:
@@ -991,3 +1058,7 @@ def import_json(request):
         except Exception as e:
             messages.error(request, f'Erro ao importar: {e}')
     return redirect('planejamento:dashboard')
+
+
+KPIs = okrs
+KPI_detail_json = okr_detail_json
