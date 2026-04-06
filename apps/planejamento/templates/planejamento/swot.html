@@ -3,120 +3,156 @@
 {% block page_title %}Planejamento Estratégico{% endblock %}
 {% block page_sub %}Análise SWOT{% endblock %}
 
-{% block extra_css %}
-<style>
-.section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
-.section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:14px}
-.swot-table{width:100%;border-collapse:collapse;font-size:13px}
-.swot-table th{background:#1565C0;color:white;padding:8px 10px}
-.swot-table td{padding:0;border-bottom:1px solid #E2E8F0}
-.swot-table td input,.swot-table td select{width:100%;padding:7px 10px;border:none;background:transparent;font-size:13px;font-family:inherit}
-.swot-table td input:focus,.swot-table td select:focus{background:#EFF6FF;outline:none}
-.swot-table tr:nth-child(even) td{background:#F8FAFC}
-.swot-table tr:nth-child(even) td input,.swot-table tr:nth-child(even) td select{background:transparent}
-.tipo-forca{color:#065F46;font-weight:600}
-.tipo-fraqueza{color:#991B1B;font-weight:600}
-.tipo-oportunidade{color:#1E3A8A;font-weight:600}
-.tipo-ameaca{color:#92400E;font-weight:600}
-.btn-add-row{background:#EFF6FF;border:1px dashed #93C5FD;color:#1565C0;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:8px}
-.btn-add-row:hover{background:#DBEAFE}
-.legend{display:flex;gap:16px;font-size:12px;margin-bottom:8px}
-.legend span{display:flex;align-items:center;gap:4px}
-.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
-</style>
-{% endblock %}
-
 {% block content %}
 {% if fig_swot_json %}
-<div class="section-card">
-  <div class="section-title">⚖️ Matriz SWOT — Visualização 4 Quadrantes</div>
-  <div id="chart-swot"></div>
-</div>
+<section class="card mb-4">
+  <h2>⚖️ Matriz SWOT — Visualização 4 Quadrantes</h2>
+  <div id="swot-chart" style="min-height: 420px;"></div>
+</section>
 {% endif %}
 
-<div class="section-card">
-  <div class="section-title">📝 Editar Itens SWOT</div>
-  <p style="font-size:12px;color:#64748B;margin-bottom:10px">Edite diretamente nas células. Marque <strong>Excluir</strong> para remover. Clique em 💾 Salvar ao terminar.</p>
-
-  <div class="legend">
-    <span><span class="dot" style="background:#43A047"></span>Força</span>
-    <span><span class="dot" style="background:#E53935"></span>Fraqueza</span>
-    <span><span class="dot" style="background:#1565C0"></span>Oportunidade</span>
-    <span><span class="dot" style="background:#FB8C00"></span>Ameaça</span>
-  </div>
-
-  <form method="post" id="form-swot">{% csrf_token %}
-    <input type="hidden" name="action" value="save_table">
-    <input type="hidden" name="rows_json" id="rows-json">
-    <div style="overflow-x:auto">
-    <table class="swot-table" id="swot-table">
-      <thead><tr><th style="width:120px">Tipo</th><th>Descrição</th><th style="width:100px">Prioridade</th><th style="width:70px">Excluir</th></tr></thead>
-      <tbody>
-      {% for item in dados.swot %}
-      <tr>
-        <td>
-          <select data-field="tipo">
-            {% for t in tipos %}<option {% if t == item.tipo %}selected{% endif %}>{{ t }}</option>{% endfor %}
-          </select>
-        </td>
-        <td><input type="text" value="{{ item.descricao }}" data-field="descricao" placeholder="Descrição..."></td>
-        <td>
-          <select data-field="prioridade">
-            {% for p in prioridades %}<option {% if p == item.prioridade %}selected{% endif %}>{{ p }}</option>{% endfor %}
-          </select>
-        </td>
-        <td style="padding:6px;text-align:center"><input type="checkbox" data-field="excluir" style="width:auto;padding:0"></td>
-      </tr>
+<section class="swot-grid mb-4">
+  <article class="card swot-card strength">
+    <h3>Forças</h3>
+    <ul>
+      {% for item in swot_groups.Força %}
+        <li><strong>{{ item.prioridade }}</strong> — {{ item.descricao }}</li>
+      {% empty %}
+        <li>Nenhuma força cadastrada.</li>
       {% endfor %}
-      </tbody>
-    </table>
+    </ul>
+  </article>
+
+  <article class="card swot-card weakness">
+    <h3>Fraquezas</h3>
+    <ul>
+      {% for item in swot_groups.Fraqueza %}
+        <li><strong>{{ item.prioridade }}</strong> — {{ item.descricao }}</li>
+      {% empty %}
+        <li>Nenhuma fraqueza cadastrada.</li>
+      {% endfor %}
+    </ul>
+  </article>
+
+  <article class="card swot-card opportunity">
+    <h3>Oportunidades</h3>
+    <ul>
+      {% for item in swot_groups.Oportunidade %}
+        <li><strong>{{ item.prioridade }}</strong> — {{ item.descricao }}</li>
+      {% empty %}
+        <li>Nenhuma oportunidade cadastrada.</li>
+      {% endfor %}
+    </ul>
+  </article>
+
+  <article class="card swot-card threat">
+    <h3>Ameaças</h3>
+    <ul>
+      {% for item in swot_groups.Ameaça %}
+        <li><strong>{{ item.prioridade }}</strong> — {{ item.descricao }}</li>
+      {% empty %}
+        <li>Nenhuma ameaça cadastrada.</li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Editar Itens SWOT</h2>
+  <p>Edite diretamente nas células. Marque Excluir para remover. Clique em Salvar ao terminar.</p>
+
+  <form method="post" id="form-save-swot">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_table">
+    <input type="hidden" name="rows_json" id="rows-json-swot">
+
+    <div class="table-wrap">
+      <table id="swot-table" class="data-table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Descrição</th>
+            <th>Prioridade</th>
+            <th>Excluir</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in dados.swot %}
+          <tr>
+            <td>
+              <select data-field="tipo">
+                {% for t in tipos %}
+                  <option value="{{ t }}" {% if item.tipo == t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><textarea data-field="descricao" rows="2">{{ item.descricao|default:'' }}</textarea></td>
+            <td>
+              <select data-field="prioridade">
+                {% for p in prioridades %}
+                  <option value="{{ p }}" {% if item.prioridade == p %}selected{% endif %}>{{ p }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="text-center"><input type="checkbox" data-field="excluir"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-    <button type="button" class="btn-add-row" onclick="addRow()">➕ Adicionar linha</button>
-    <br><br>
-    <button type="button" class="btn btn-primary" onclick="saveTable()">💾 Salvar SWOT</button>
+
+    <div class="mt-3 d-flex gap-2">
+      <button type="button" class="btn" onclick="addSwotRow()">➕ Adicionar linha</button>
+      <button type="button" class="btn btn-primary" onclick="submitSwotTable()">Salvar SWOT</button>
+    </div>
   </form>
-</div>
+</section>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-{% if fig_swot_json %}
 <script>
-Plotly.newPlot('chart-swot',
-  JSON.parse('{{ fig_swot_json|escapejs }}').data,
-  JSON.parse('{{ fig_swot_json|escapejs }}').layout,
-  {responsive:true,displayModeBar:false});
-</script>
-{% endif %}
-<script>
-var tipos = {{ tipos|safe }};
-var prioridades = {{ prioridades|safe }};
+const swotTipos = {{ tipos|safe }};
+const swotPrioridades = {{ prioridades|safe }};
 
-function addRow() {
-  var tbody = document.querySelector('#swot-table tbody');
-  var tr = document.createElement('tr');
-  tr.innerHTML = '<td><select data-field="tipo">' +
-    tipos.map(function(t){return '<option>'+t+'</option>'}).join('') +
-    '</select></td>' +
-    '<td><input type="text" data-field="descricao" placeholder="Descrição..."></td>' +
-    '<td><select data-field="prioridade">' +
-    prioridades.map(function(p){return '<option>'+p+'</option>'}).join('') +
-    '</select></td>' +
-    '<td style="padding:6px;text-align:center"><input type="checkbox" data-field="excluir" style="width:auto;padding:0"></td>';
+function optionList(options, selected = '') {
+  return options.map((value) => `<option value="${value}" ${value === selected ? 'selected' : ''}>${value}</option>`).join('');
+}
+
+function addSwotRow() {
+  const tbody = document.querySelector('#swot-table tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><select data-field="tipo">${optionList(swotTipos, 'Força')}</select></td>
+    <td><textarea data-field="descricao" rows="2"></textarea></td>
+    <td><select data-field="prioridade">${optionList(swotPrioridades, 'Alta')}</select></td>
+    <td class="text-center"><input type="checkbox" data-field="excluir"></td>
+  `;
   tbody.appendChild(tr);
 }
 
-function saveTable() {
-  var rows = [];
-  document.querySelectorAll('#swot-table tbody tr').forEach(function(tr) {
-    var row = {};
-    tr.querySelectorAll('[data-field]').forEach(function(el) {
-      row[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+function serializeSwotTable() {
+  const rows = [];
+  document.querySelectorAll('#swot-table tbody tr').forEach((tr) => {
+    const row = {};
+    tr.querySelectorAll('[data-field]').forEach((el) => {
+      if (el.type === 'checkbox') {
+        row[el.dataset.field] = el.checked;
+      } else {
+        row[el.dataset.field] = (el.value || '').trim();
+      }
     });
     rows.push(row);
   });
-  document.getElementById('rows-json').value = JSON.stringify(rows);
-  document.getElementById('form-swot').submit();
+  return rows;
 }
+
+function submitSwotTable() {
+  document.getElementById('rows-json-swot').value = JSON.stringify(serializeSwotTable());
+  document.getElementById('form-save-swot').submit();
+}
+
+{% if fig_swot_json %}
+Plotly.newPlot('swot-chart', JSON.parse('{{ fig_swot_json|escapejs }}').data, JSON.parse('{{ fig_swot_json|escapejs }}').layout, {responsive: true});
+{% endif %}
 </script>
 {% endblock %}
