@@ -773,17 +773,32 @@ def okrs(request):
             rows_json = request.POST.get('rows_json', '[]')
             try:
                 rows = json.loads(rows_json)
+
                 for row in rows:
-                    nome = row.get('nome', '')
-                    for idx, o in enumerate(dados['okrs']):
-                        if o['nome'] == nome:
-                            dados['okrs'][idx] = _ensure_okr_meses(o)
-                            okr = dados['okrs'][idx]
-                            for i in range(36):
-                                key = f'M{i+1:02d}'
-                                if key in row:
-                                    okr['meses'][i]['previsto'] = float(row[key] or 0)
-                            break
+                    row_idx = row.get('idx')
+
+                    if row_idx is None or row_idx == '':
+                        continue
+
+                    try:
+                        idx = int(row_idx)
+                    except (TypeError, ValueError):
+                        continue
+
+                    if idx < 0 or idx >= len(dados['okrs']):
+                        continue
+
+                    dados['okrs'][idx] = _ensure_okr_meses(dados['okrs'][idx])
+                    okr = dados['okrs'][idx]
+
+                    for i in range(36):
+                        key = f'M{i+1:02d}'
+                        if key in row:
+                            try:
+                                okr['meses'][i]['previsto'] = float(row[key] or 0)
+                            except (TypeError, ValueError):
+                                okr['meses'][i]['previsto'] = 0.0
+
                 save_planning(dados)
                 messages.success(request, 'Planejado salvo!')
             except Exception as e:
@@ -793,17 +808,32 @@ def okrs(request):
             rows_json = request.POST.get('rows_json', '[]')
             try:
                 rows = json.loads(rows_json)
+
                 for row in rows:
-                    nome = row.get('nome', '')
-                    for idx, o in enumerate(dados['okrs']):
-                        if o['nome'] == nome:
-                            dados['okrs'][idx] = _ensure_okr_meses(o)
-                            okr = dados['okrs'][idx]
-                            for i in range(36):
-                                key = f'M{i+1:02d}'
-                                if key in row:
-                                    okr['meses'][i]['realizado'] = float(row[key] or 0)
-                            break
+                    row_idx = row.get('idx')
+
+                    if row_idx is None or row_idx == '':
+                        continue
+
+                    try:
+                        idx = int(row_idx)
+                    except (TypeError, ValueError):
+                        continue
+
+                    if idx < 0 or idx >= len(dados['okrs']):
+                        continue
+
+                    dados['okrs'][idx] = _ensure_okr_meses(dados['okrs'][idx])
+                    okr = dados['okrs'][idx]
+
+                    for i in range(36):
+                        key = f'M{i+1:02d}'
+                        if key in row:
+                            try:
+                                okr['meses'][i]['realizado'] = float(row[key] or 0)
+                            except (TypeError, ValueError):
+                                okr['meses'][i]['realizado'] = 0.0
+
                 save_planning(dados)
                 messages.success(request, 'Realizado salvo!')
             except Exception as e:
