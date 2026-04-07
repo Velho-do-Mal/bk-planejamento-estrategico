@@ -143,7 +143,7 @@ def _safe_date(s) -> Optional[date]:
         return None
 
 
-def _ensure__meses(: dict) -> dict:
+def _ensure__meses(okr: dict) -> dict:
     """Garante que  tem 36 meses com previsto/realizado."""
     meses = .get('meses', [])
     while len(meses) < 36:
