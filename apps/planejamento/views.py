@@ -974,7 +974,7 @@ def s(request):
         "month_cols": month_cols,
         "fig_overview_json": fig_okrs_overview(dados),
     }
-    return render(request, "planejamento/s.html", context)
+    return render(request, "planejamento/okrs.html", context)
 
 
 @login_required
