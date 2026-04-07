@@ -52,9 +52,19 @@ WSGI_APPLICATION = 'bk_plan.wsgi.application'
 # Banco de dados
 import dj_database_url
 DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
+
+# Em produção (Railway), DATABASE_URL deve estar configurado com PostgreSQL
+# Em desenvolvimento local, usar SQLite
 if DATABASE_URL and DATABASE_URL.startswith(('postgres', 'postgresql')):
     DATABASES = {'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=False)}
+elif os.environ.get('ENVIRONMENT') == 'production':
+    # Forçar erro se DATABASE_URL não estiver configurado em produção
+    raise ValueError(
+        'DATABASE_URL não configurado em produção. '
+        'Configure uma instância PostgreSQL no Railway e defina DATABASE_URL nas variáveis de ambiente.'
+    )
 else:
+    # Desenvolvimento local com SQLite
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

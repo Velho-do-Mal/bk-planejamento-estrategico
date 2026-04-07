@@ -57,7 +57,6 @@ def get_planning() -> dict:
     dados.setdefault("partners", [])
     dados.setdefault("areas", [])
     dados.setdefault("swot", [])
-    dados.setdefault("s", [])
     dados.setdefault("actions", [])
     dados.setdefault("strategic", {
         "visao": "",
@@ -71,6 +70,18 @@ def get_planning() -> dict:
         "objetivos_estrategicos": "",
         "notas": "",
     })
+    
+    # Normalizar dados antigos: migrar 'okrs' para 's' se existir
+    if "okrs" in dados and dados["okrs"]:
+        if "s" not in dados or not dados["s"]:
+            dados["s"] = dados["okrs"]
+        # Remover chave 'okrs' antiga
+        del dados["okrs"]
+        obj.dados = dados
+        obj.save()
+    
+    dados.setdefault("s", [])
+    
     return dados
 
 

@@ -24,7 +24,7 @@ class PlanningData(models.Model):
         obj, _ = cls.objects.get_or_create(
             slug='bk',
             defaults={'dados': {
-                'partners': [], 'areas': [], 'swot': [], 'okrs': [], 'actions': [],
+                'partners': [], 'areas': [], 'swot': [], 's': [], 'actions': [],
                 'strategic': {
                     'visao': '', 'missao': '', 'valores': '', 'posicionamento': '',
                     'proposta_valor': '', 'publico_alvo': '', 'diferenciais': '',
