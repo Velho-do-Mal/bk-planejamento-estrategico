@@ -152,7 +152,7 @@ def _ensure__meses(okr: dict) -> dict:
     return 
 
 
-def _month_labels_for_(: dict) -> List[str]:
+def _month_labels_for_(okr: dict) -> List[str]:
     inicio_str = okr.get('inicio', '')
     try:
         if inicio_str:
