@@ -187,7 +187,7 @@ def _fig_layout(fig, title="", height=380):
 
 
 def fig__monthly(okr: dict) -> str:
-     = _ensure__meses()
+    okr = _ensure__meses()
     labels = _month_labels_for_()
     prev = [float(m.get('previsto', 0)) for m in ['meses']]
     real = [float(m.get('realizado', 0)) for m in ['meses']]
