@@ -61,7 +61,7 @@ def get_planning() -> dict:
     dados.setdefault('partners', [])
     dados.setdefault('areas', [])
     dados.setdefault('swot', [])
-    dados.setdefault('okrs', [])
+    dados.setdefault('s', [])
     dados.setdefault('actions', [])
     dados.setdefault('strategic', {
         'visao': '', 'missao': '', 'valores': '', 'posicionamento': '',
@@ -143,17 +143,17 @@ def _safe_date(s) -> Optional[date]:
         return None
 
 
-def _ensure_okr_meses(okr: dict) -> dict:
-    """Garante que OKR tem 36 meses com previsto/realizado."""
-    meses = okr.get('meses', [])
+def _ensure__meses(: dict) -> dict:
+    """Garante que  tem 36 meses com previsto/realizado."""
+    meses = .get('meses', [])
     while len(meses) < 36:
         meses.append({'previsto': 0.0, 'realizado': 0.0})
-    okr['meses'] = meses[:36]
-    return okr
+    ['meses'] = meses[:36]
+    return 
 
 
-def _month_labels_for_okr(okr: dict) -> List[str]:
-    inicio_str = okr.get('inicio', '')
+def _month_labels_for_(: dict) -> List[str]:
+    inicio_str = .get('inicio', '')
     try:
         if inicio_str:
             dt = datetime.strptime(str(inicio_str)[:7], "%Y-%m")
@@ -186,12 +186,12 @@ def _fig_layout(fig, title="", height=380):
     return fig
 
 
-def fig_okr_monthly(okr: dict) -> str:
-    okr = _ensure_okr_meses(okr)
-    labels = _month_labels_for_okr(okr)
-    prev = [float(m.get('previsto', 0)) for m in okr['meses']]
-    real = [float(m.get('realizado', 0)) for m in okr['meses']]
-    unidade = okr.get('unidade', '')
+def fig__monthly(: dict) -> str:
+     = _ensure__meses()
+    labels = _month_labels_for_()
+    prev = [float(m.get('previsto', 0)) for m in ['meses']]
+    real = [float(m.get('realizado', 0)) for m in ['meses']]
+    unidade = .get('unidade', '')
 
     fig = go.Figure()
     fig.add_trace(go.Bar(name='Planejado', x=labels, y=prev,
@@ -199,15 +199,15 @@ def fig_okr_monthly(okr: dict) -> str:
     fig.add_trace(go.Scatter(name='Realizado', x=labels, y=real,
                              mode='lines+markers', line=dict(color=BK_GREEN, width=2.5),
                              marker=dict(size=6)))
-    _fig_layout(fig, f"Mensal — {okr.get('nome', '')} ({unidade})", height=360)
+    _fig_layout(fig, f"Mensal — {.get('nome', '')} ({unidade})", height=360)
     return fig.to_json()
 
 
-def fig_okr_cumulative(okr: dict) -> str:
-    okr = _ensure_okr_meses(okr)
-    labels = _month_labels_for_okr(okr)
-    prev = [float(m.get('previsto', 0)) for m in okr['meses']]
-    real = [float(m.get('realizado', 0)) for m in okr['meses']]
+def fig__cumulative(: dict) -> str:
+     = _ensure__meses()
+    labels = _month_labels_for_()
+    prev = [float(m.get('previsto', 0)) for m in ['meses']]
+    real = [float(m.get('realizado', 0)) for m in ['meses']]
     cum_prev = list(np.cumsum(prev))
     cum_real = list(np.cumsum(real))
 
@@ -217,14 +217,14 @@ def fig_okr_cumulative(okr: dict) -> str:
     fig.add_trace(go.Scatter(name='Acumulado Realizado', x=labels, y=cum_real,
                              mode='lines+markers', line=dict(color=BK_GREEN, width=2.5),
                              fill='tozeroy', fillcolor='rgba(67,160,71,0.08)'))
-    _fig_layout(fig, f"Acumulado — {okr.get('nome', '')}", height=320)
+    _fig_layout(fig, f"Acumulado — {.get('nome', '')}", height=320)
     return fig.to_json()
 
 
-def fig_okr_gauge(okr: dict) -> str:
-    okr = _ensure_okr_meses(okr)
-    tp = sum(float(m.get('previsto', 0)) for m in okr['meses'])
-    tr = sum(float(m.get('realizado', 0)) for m in okr['meses'])
+def fig__gauge(: dict) -> str:
+     = _ensure__meses()
+    tp = sum(float(m.get('previsto', 0)) for m in ['meses'])
+    tr = sum(float(m.get('realizado', 0)) for m in ['meses'])
     pct = (tr / tp * 100) if tp > 0 else 0
     color = BK_GREEN if pct >= 90 else (BK_ORANGE if pct >= 70 else BK_RED)
 
@@ -232,7 +232,7 @@ def fig_okr_gauge(okr: dict) -> str:
         mode="gauge+number",
         value=pct,
         number={'suffix': '%', 'font': {'size': 22}},
-        title={'text': okr.get('nome', '')[:25], 'font': {'size': 11}},
+        title={'text': .get('nome', '')[:25], 'font': {'size': 11}},
         gauge={
             'axis': {'range': [0, 150], 'tickwidth': 1},
             'bar': {'color': color},
@@ -346,13 +346,13 @@ def fig_actions_timeline(dados: dict) -> str:
     return fig.to_json()
 
 
-def fig_okrs_overview(dados: dict) -> str:
-    okrs = dados.get('okrs', [])
-    if not okrs:
+def fig_s_overview(dados: dict) -> str:
+    s = dados.get('s', [])
+    if not s:
         return None
     names, prevs, reals, pcts = [], [], [], []
-    for o in okrs:
-        o = _ensure_okr_meses(o)
+    for o in s:
+        o = _ensure__meses(o)
         tp = sum(float(m.get('previsto', 0)) for m in o['meses'])
         tr = sum(float(m.get('realizado', 0)) for m in o['meses'])
         pct = (tr / tp * 100) if tp > 0 else 0
@@ -377,7 +377,7 @@ def fig_okrs_overview(dados: dict) -> str:
         paper_bgcolor="white", plot_bgcolor="#F8FAFC",
         margin=dict(l=40, r=60, t=40, b=60),
         font=dict(family="Segoe UI"),
-        title="Visão Geral OKRs — Planejado vs Realizado",
+        title="Visão Geral s — Planejado vs Realizado",
     )
     return fig.to_json()
 
@@ -401,18 +401,18 @@ def export_excel(dados: dict) -> bytes:
         if dados.get('swot'):
             df = pd.DataFrame(dados['swot'])
             df.to_excel(writer, sheet_name='SWOT', index=False)
-        # OKRs resumo
-        if dados.get('okrs'):
+        # s resumo
+        if dados.get('s'):
             rows = []
-            for o in dados['okrs']:
-                o = _ensure_okr_meses(o)
+            for o in dados['s']:
+                o = _ensure__meses(o)
                 row = {'nome': o.get('nome'), 'area': o.get('area'),
                        'unidade': o.get('unidade'), 'inicio': o.get('inicio')}
                 for i, m in enumerate(o['meses']):
                     row[f'M{i+1:02d}_prev'] = m.get('previsto', 0)
                     row[f'M{i+1:02d}_real'] = m.get('realizado', 0)
                 rows.append(row)
-            pd.DataFrame(rows).to_excel(writer, sheet_name='OKRs', index=False)
+            pd.DataFrame(rows).to_excel(writer, sheet_name='s', index=False)
         # Actions
         if dados.get('actions'):
             df = pd.DataFrame(dados['actions'])
@@ -440,13 +440,13 @@ def build_html_report(dados: dict) -> str:
     """Gera relatório HTML completo — porta fiel do build_html_report do Streamlit."""
     today = date.today().strftime('%d/%m/%Y')
     s = dados.get('strategic', {})
-    okrs = dados.get('okrs', [])
+    s = dados.get('s', [])
     actions = dados.get('actions', [])
     swot = dados.get('swot', [])
 
-    # KPIs
-    total_prev = sum(float(m.get('previsto', 0)) for o in okrs for m in _ensure_okr_meses(o)['meses'])
-    total_real = sum(float(m.get('realizado', 0)) for o in okrs for m in _ensure_okr_meses(o)['meses'])
+    # okrs
+    total_prev = sum(float(m.get('previsto', 0)) for o in s for m in _ensure__meses(o)['meses'])
+    total_real = sum(float(m.get('realizado', 0)) for o in s for m in _ensure__meses(o)['meses'])
     pct_geral = (total_real / total_prev * 100) if total_prev > 0 else 0
     n_concluidos = sum(1 for a in actions if a.get('status') == 'Concluído')
     n_atrasados = sum(1 for a in actions
@@ -454,16 +454,16 @@ def build_html_report(dados: dict) -> str:
                       and _safe_date(a.get('data_vencimento'))
                       and _safe_date(a.get('data_vencimento')) < date.today())
 
-    # OKRs tabela
-    okr_rows = ''
-    for o in okrs:
-        o = _ensure_okr_meses(o)
+    # s tabela
+    _rows = ''
+    for o in s:
+        o = _ensure__meses(o)
         tp = sum(float(m.get('previsto', 0)) for m in o['meses'])
         tr = sum(float(m.get('realizado', 0)) for m in o['meses'])
         pct = (tr / tp * 100) if tp > 0 else 0
         cor = '#059669' if pct >= 95 else ('#D97706' if pct >= 70 else '#DC2626')
         semaforo = '🟢' if pct >= 95 else ('🟡' if pct >= 70 else '🔴')
-        okr_rows += f"""<tr>
+        _rows += f"""<tr>
             <td>{semaforo}</td><td>{o.get('nome','')}</td><td>{o.get('area','')}</td>
             <td>{o.get('unidade','')}</td>
             <td style="color:{cor};font-weight:700">{pct:.1f}%</td>
@@ -499,11 +499,11 @@ def build_html_report(dados: dict) -> str:
   body {{ font-family: 'Segoe UI', sans-serif; background: #F0F4F8; margin: 0; padding: 20px; color: #1a202c; }}
   .hero {{ background: linear-gradient(135deg, #1565C0, #00897B); color: white; padding: 32px; border-radius: 12px; margin-bottom: 24px; }}
   .hero h1 {{ margin: 0; font-size: 26px; }} .hero p {{ margin: 6px 0 0; opacity: .85; }}
-  .kpi-row {{ display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }}
-  .kpi {{ background: white; border-radius: 10px; padding: 18px 24px; text-align: center;
+  .okr-row {{ display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }}
+  .okr {{ background: white; border-radius: 10px; padding: 18px 24px; text-align: center;
           box-shadow: 0 2px 8px rgba(0,0,0,.07); border-top: 3px solid #1565C0; min-width: 130px; flex:1; }}
-  .kpi .val {{ font-size: 30px; font-weight: 700; color: #1565C0; }}
-  .kpi .lbl {{ font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }}
+  .okr .val {{ font-size: 30px; font-weight: 700; color: #1565C0; }}
+  .okr .lbl {{ font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }}
   .card {{ background: white; border-radius: 10px; padding: 20px 24px; margin-bottom: 20px;
            box-shadow: 0 2px 8px rgba(0,0,0,.06); }}
   .card h2 {{ font-size: 15px; color: #1565C0; border-bottom: 2px solid #E3F2FD; padding-bottom: 8px; margin-top: 0; }}
@@ -524,12 +524,12 @@ def build_html_report(dados: dict) -> str:
   <p>Gerado em {today} &nbsp;|&nbsp; Horizonte: 36 meses</p>
 </div>
 
-<div class="kpi-row">
-  <div class="kpi"><div class="val">{len(okrs)}</div><div class="lbl">OKRs</div></div>
-  <div class="kpi"><div class="val" style="color:{'#059669' if pct_geral>=90 else ('#D97706' if pct_geral>=70 else '#DC2626')}">{pct_geral:.1f}%</div><div class="lbl">Realização Geral</div></div>
-  <div class="kpi"><div class="val">{len(actions)}</div><div class="lbl">Planos de Ação</div></div>
-  <div class="kpi"><div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div></div>
-  <div class="kpi"><div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div></div>
+<div class="okr-row">
+  <div class="okr"><div class="val">{len(s)}</div><div class="lbl">s</div></div>
+  <div class="okr"><div class="val" style="color:{'#059669' if pct_geral>=90 else ('#D97706' if pct_geral>=70 else '#DC2626')}">{pct_geral:.1f}%</div><div class="lbl">Realização Geral</div></div>
+  <div class="okr"><div class="val">{len(actions)}</div><div class="lbl">Planos de Ação</div></div>
+  <div class="okr"><div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div></div>
+  <div class="okr"><div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div></div>
 </div>
 
 <div class="card">
@@ -547,7 +547,7 @@ def build_html_report(dados: dict) -> str:
   {'<div style="margin-top:12px"><strong style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.4px">Objetivos Estratégicos</strong><p style="font-size:13px;margin:4px 0 0">' + s.get("objetivos_estrategicos","") + '</p></div>' if s.get("objetivos_estrategicos") else ''}
 </div>
 
-{'<div class="card"><h2>📈 OKRs — Saúde Geral</h2><table><thead><tr><th></th><th>OKR</th><th>Área</th><th>Unidade</th><th>% Realização</th><th>Meses Preenchidos</th></tr></thead><tbody>' + okr_rows + '</tbody></table></div>' if okrs else ''}
+{'<div class="card"><h2>📈 s — Saúde Geral</h2><table><thead><tr><th></th><th></th><th>Área</th><th>Unidade</th><th>% Realização</th><th>Meses Preenchidos</th></tr></thead><tbody>' + _rows + '</tbody></table></div>' if s else ''}
 
 {'<div class="card"><h2>⚖️ Análise SWOT</h2><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Prioridade</th></tr></thead><tbody>' + swot_rows + '</tbody></table></div>' if swot else ''}
 
@@ -567,12 +567,12 @@ def dashboard(request):
     dados = get_planning()
     today = date.today()
 
-    okrs = dados.get('okrs', [])
+    s = dados.get('s', [])
     actions = dados.get('actions', [])
 
-    # KPIs
-    total_prev = sum(float(m.get('previsto', 0)) for o in okrs for m in _ensure_okr_meses(o)['meses'])
-    total_real = sum(float(m.get('realizado', 0)) for o in okrs for m in _ensure_okr_meses(o)['meses'])
+    # okrs
+    total_prev = sum(float(m.get('previsto', 0)) for o in s for m in _ensure__meses(o)['meses'])
+    total_real = sum(float(m.get('realizado', 0)) for o in s for m in _ensure__meses(o)['meses'])
     pct_real = (total_real / total_prev * 100) if total_prev > 0 else 0
     n_atrasados = sum(1 for a in actions
                       if a.get('status') != 'Concluído'
@@ -582,10 +582,10 @@ def dashboard(request):
     n_andamento = sum(1 for a in actions if a.get('status') == 'Em andamento')
 
     # Gráficos
-    fig_overview_json = fig_okrs_overview(dados)
+    fig_overview_json = fig_s_overview(dados)
     fig_status_json = fig_actions_status(dados)
     fig_swot_json = fig_swot_quadrant(dados.get('swot', [])) if dados.get('swot') else None
-    gauges = [fig_okr_gauge(o) for o in okrs[:4]]
+    gauges = [fig__gauge(o) for o in s[:4]]
 
     # Atrasados
     atrasados = []
@@ -598,7 +598,7 @@ def dashboard(request):
 
     return render(request, 'planejamento/dashboard.html', {
         'dados': dados,
-        'n_okrs': len(okrs),
+        'n_s': len(s),
         'pct_real': round(pct_real, 1),
         'pct_real_color': BK_GREEN if pct_real >= 90 else (BK_ORANGE if pct_real >= 70 else BK_RED),
         'n_actions': len(actions),
@@ -741,10 +741,10 @@ def swot(request):
 
 @login_required
 @login_required
-def okrs(request):
+def s(request):
     dados = get_planning()
-    dados.setdefault("okrs", [])
-    dados["okrs"] = [_ensure_okr_meses(o) for o in dados["okrs"]]
+    dados.setdefault("s", [])
+    dados["s"] = [_ensure__meses(o) for o in dados["s"]]
 
     unidade_opts = ["R$", "%", "un", "clientes", "projetos", "h", "dias", "índice"]
     month_cols = [f"M{i:02d}" for i in range(1, 37)]
@@ -756,7 +756,7 @@ def okrs(request):
             rows_json = request.POST.get("rows_json", "[]")
             try:
                 rows = json.loads(rows_json)
-                antigos = [_ensure_okr_meses(dict(o)) for o in dados.get("okrs", [])]
+                antigos = [_ensure__meses(dict(o)) for o in dados.get("s", [])]
                 novos = []
 
                 for idx, row in enumerate(rows):
@@ -781,13 +781,13 @@ def okrs(request):
                         "meses": meses[:36],
                     })
 
-                dados["okrs"] = novos
+                dados["s"] = novos
                 save_planning(dados)
                 messages.success(request, "KPIs salvos com sucesso.")
             except Exception as e:
                 messages.error(request, f"Erro ao salvar KPIs: {e}")
 
-            return redirect("planejamento:okrs")
+            return redirect("planejamento:s")
 
         elif action == "save_previsto":
             rows_json = request.POST.get("rows_json", "[]")
@@ -804,26 +804,26 @@ def okrs(request):
                     except (TypeError, ValueError):
                         continue
 
-                    if idx < 0 or idx >= len(dados["okrs"]):
+                    if idx < 0 or idx >= len(dados["s"]):
                         continue
 
-                    dados["okrs"][idx] = _ensure_okr_meses(dados["okrs"][idx])
-                    okr = dados["okrs"][idx]
+                    dados["s"][idx] = _ensure__meses(dados["s"][idx])
+                     = dados["s"][idx]
 
                     for i in range(36):
                         key = f"M{i+1:02d}"
                         if key in row:
                             try:
-                                okr["meses"][i]["previsto"] = float(row[key] or 0)
+                                ["meses"][i]["previsto"] = float(row[key] or 0)
                             except (TypeError, ValueError):
-                                okr["meses"][i]["previsto"] = 0.0
+                                ["meses"][i]["previsto"] = 0.0
 
                 save_planning(dados)
                 messages.success(request, "Planejado salvo com sucesso.")
             except Exception as e:
                 messages.error(request, f"Erro ao salvar planejado: {e}")
 
-            return redirect("planejamento:okrs")
+            return redirect("planejamento:s")
 
         elif action == "save_realizado":
             rows_json = request.POST.get("rows_json", "[]")
@@ -840,61 +840,61 @@ def okrs(request):
                     except (TypeError, ValueError):
                         continue
 
-                    if idx < 0 or idx >= len(dados["okrs"]):
+                    if idx < 0 or idx >= len(dados["s"]):
                         continue
 
-                    dados["okrs"][idx] = _ensure_okr_meses(dados["okrs"][idx])
-                    okr = dados["okrs"][idx]
+                    dados["s"][idx] = _ensure__meses(dados["s"][idx])
+                     = dados["s"][idx]
 
                     for i in range(36):
                         key = f"M{i+1:02d}"
                         if key in row:
                             try:
-                                okr["meses"][i]["realizado"] = float(row[key] or 0)
+                                ["meses"][i]["realizado"] = float(row[key] or 0)
                             except (TypeError, ValueError):
-                                okr["meses"][i]["realizado"] = 0.0
+                                ["meses"][i]["realizado"] = 0.0
 
                 save_planning(dados)
                 messages.success(request, "Realizado salvo com sucesso.")
             except Exception as e:
                 messages.error(request, f"Erro ao salvar realizado: {e}")
 
-            return redirect("planejamento:okrs")
+            return redirect("planejamento:s")
 
-    okrs_list = [_ensure_okr_meses(dict(o)) for o in dados.get("okrs", [])]
+    s_list = [_ensure__meses(dict(o)) for o in dados.get("s", [])]
 
     context = {
         "dados": dados,
-        "okrs_list": okrs_list,
-        "KPIs_list": okrs_list,   # compatibilidade com template antigo
+        "s_list": s_list,
+        "okrs_list": s_list,   # compatibilidade com template antigo
         "unidade_opts": unidade_opts,
         "month_cols": month_cols,
-        "fig_overview_json": fig_okrs_overview(dados),
+        "fig_overview_json": fig_s_overview(dados),
     }
-    return render(request, "planejamento/okrs.html", context)
+    return render(request, "planejamento/s.html", context)
 
 @login_required
-def okr_detail_json(request, nome):
+def _detail_json(request, nome):
     dados = get_planning()
-    okrs = dados.get("okrs", [])
+    s = dados.get("s", [])
 
-    okr = None
-    for item in okrs:
+     = None
+    for item in s:
         if str(item.get("nome", "")).strip() == str(nome).strip():
-            okr = _ensure_okr_meses(item)
+             = _ensure__meses(item)
             break
 
-    if not okr:
+    if not :
         return JsonResponse({"error": "KPI não encontrada."}, status=404)
 
-    tp = sum(float(m.get("previsto", 0) or 0) for m in okr["meses"])
-    tr = sum(float(m.get("realizado", 0) or 0) for m in okr["meses"])
+    tp = sum(float(m.get("previsto", 0) or 0) for m in ["meses"])
+    tr = sum(float(m.get("realizado", 0) or 0) for m in ["meses"])
     pct = round((tr / tp * 100), 1) if tp > 0 else 0.0
 
-    labels = _month_labels_for_okr(okr)
+    labels = _month_labels_for_()
     table = []
 
-    for i, mes in enumerate(okr["meses"]):
+    for i, mes in enumerate(["meses"]):
         prev = float(mes.get("previsto", 0) or 0)
         real = float(mes.get("realizado", 0) or 0)
         diff = real - prev
@@ -915,14 +915,14 @@ def okr_detail_json(request, nome):
         })
 
     payload = {
-        "nome": okr.get("nome", ""),
-        "unidade": okr.get("unidade", ""),
+        "nome": .get("nome", ""),
+        "unidade": .get("unidade", ""),
         "tp": tp,
         "tr": tr,
         "pct": pct,
-        "fig_gauge": fig_okr_gauge(okr),
-        "fig_monthly": fig_okr_monthly(okr),
-        "fig_cumulative": fig_okr_cumulative(okr),
+        "fig_gauge": fig__gauge(),
+        "fig_monthly": fig__monthly(),
+        "fig_cumulative": fig__cumulative(),
         "table": table,
     }
     return JsonResponse(payload)
@@ -949,7 +949,7 @@ def planos_acao(request):
                     'data_vencimento': request.POST.get('data_vencimento', ''),
                     'status': request.POST.get('status', 'Pendente'),
                     'observacoes': request.POST.get('observacoes', ''),
-                    'okr': request.POST.get('okr', ''),
+                    '': request.POST.get('', ''),
                     'como_fazer': request.POST.get('como_fazer', ''),
                 })
                 save_planning(dados)
@@ -1015,7 +1015,7 @@ def planos_acao(request):
 def relatorios(request):
     dados = get_planning()
     today = date.today()
-    okrs = dados.get('okrs', [])
+    s = dados.get('s', [])
     actions = dados.get('actions', [])
     swot = dados.get('swot', [])
 
@@ -1025,17 +1025,17 @@ def relatorios(request):
                       and _safe_date(a.get('data_vencimento')) < today)
     n_concluidos = sum(1 for a in actions if a.get('status') == 'Concluído')
 
-    # Saúde OKRs
-    okr_saude = []
-    for o in okrs:
-        o = _ensure_okr_meses(o)
+    # Saúde s
+    _saude = []
+    for o in s:
+        o = _ensure__meses(o)
         tp = sum(float(m.get('previsto', 0)) for m in o['meses'])
         tr = sum(float(m.get('realizado', 0)) for m in o['meses'])
         pct = (tr / tp * 100) if tp > 0 else 0
         filled = sum(1 for m in o['meses'] if float(m.get('realizado', 0)) != 0)
         semaforo = '🟢' if pct >= 95 else ('🟡' if pct >= 70 else '🔴')
         color = BK_GREEN if pct >= 95 else (BK_ORANGE if pct >= 70 else BK_RED)
-        okr_saude.append({
+        _saude.append({
             'semaforo': semaforo, 'nome': o.get('nome'), 'area': o.get('area'),
             'unidade': o.get('unidade'), 'pct': round(pct, 1), 'filled': filled,
             'color': color,
@@ -1047,17 +1047,17 @@ def relatorios(request):
     opps = [s for s in swot if s.get('tipo') == 'Oportunidade' and s.get('prioridade') == 'Alta']
     weaknesses = [s for s in swot if s.get('tipo') == 'Fraqueza' and s.get('prioridade') == 'Alta']
     if threats:    recs.append(f'🔴 {len(threats)} Ameaça(s) Alta — crie planos de mitigação com responsável e prazo.')
-    if opps:       recs.append(f'🔵 {len(opps)} Oportunidade(s) Alta — transforme em 1–2 OKRs por pilar estratégico.')
+    if opps:       recs.append(f'🔵 {len(opps)} Oportunidade(s) Alta — transforme em 1–2 s por pilar estratégico.')
     if weaknesses: recs.append(f'🟡 {len(weaknesses)} Fraqueza(s) Alta — endereçar com planos de ação de curto prazo.')
     if n_atrasados: recs.append(f'⚠️ {n_atrasados} plano(s) atrasado(s) — priorize replanejamento: escopo, capacidade, nova data.')
-    if okrs:       recs.append('📅 Estabeleça revisão mensal do realizado e revisão trimestral de OKRs e prioridades.')
-    low_fill = [o['nome'] for o in okrs if sum(1 for m in _ensure_okr_meses(o)['meses'] if m.get('realizado', 0) != 0) < 3]
-    if low_fill:   recs.append(f'📊 OKR(s) com pouco histórico: {", ".join(low_fill[:3])} — preencha o realizado mensalmente.')
-    if not recs:   recs.append('✅ Preencha Visão/Missão, SWOT e OKRs para gerar recomendações automáticas.')
+    if s:       recs.append('📅 Estabeleça revisão mensal do realizado e revisão trimestral de s e prioridades.')
+    low_fill = [o['nome'] for o in s if sum(1 for m in _ensure__meses(o)['meses'] if m.get('realizado', 0) != 0) < 3]
+    if low_fill:   recs.append(f'📊 (s) com pouco histórico: {", ".join(low_fill[:3])} — preencha o realizado mensalmente.')
+    if not recs:   recs.append('✅ Preencha Visão/Missão, SWOT e s para gerar recomendações automáticas.')
 
     return render(request, 'planejamento/relatorios.html', {
         'dados': dados,
-        'okr_saude': okr_saude,
+        '_saude': _saude,
         'recs': recs,
         'n_concluidos': n_concluidos,
         'n_atrasados': n_atrasados,
@@ -1118,5 +1118,5 @@ def import_json(request):
     return redirect('planejamento:dashboard')
 
 
-KPIs = okrs
-KPI_detail_json = okr_detail_json
+okrs = s
+okr_detail_json = _detail_json
