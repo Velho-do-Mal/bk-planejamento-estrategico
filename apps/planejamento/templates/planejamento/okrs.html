@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 
-{% block title %}KPIs — Planejamento{% endblock %}
+{% block title %}okrs — Planejamento{% endblock %}
 {% block page_title %}Planejamento Estratégico{% endblock %}
-{% block page_sub %}KPIs — Objetivos e Resultados-Chave (36 meses){% endblock %}
+{% block page_sub %}okrs — Objetivos e Resultados-Chave (36 meses){% endblock %}
 
 {% block extra_css %}
 <style>
 .section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
 .section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:12px}
-.KPI-table{width:100%;border-collapse:collapse;font-size:12px}
-.KPI-table th{background:#1565C0;color:white;padding:7px 8px;white-space:nowrap}
-.KPI-table td{padding:0;border-bottom:1px solid #E2E8F0}
-.KPI-table td input,.KPI-table td select{width:100%;padding:5px 7px;border:none;background:transparent;font-size:12px;font-family:inherit;min-width:60px}
-.KPI-table td input:focus,.KPI-table td select:focus{background:#EFF6FF;outline:none}
-.KPI-table tr:nth-child(even) td{background:#F8FAFC}
+.okr-table{width:100%;border-collapse:collapse;font-size:12px}
+.okr-table th{background:#1565C0;color:white;padding:7px 8px;white-space:nowrap}
+.okr-table td{padding:0;border-bottom:1px solid #E2E8F0}
+.okr-table td input,.okr-table td select{width:100%;padding:5px 7px;border:none;background:transparent;font-size:12px;font-family:inherit;min-width:60px}
+.okr-table td input:focus,.okr-table td select:focus{background:#EFF6FF;outline:none}
+.okr-table tr:nth-child(even) td{background:#F8FAFC}
 .accordion{border:1px solid #E2E8F0;border-radius:8px;margin-bottom:10px;overflow:hidden}
 .accordion-header{background:#F8FAFC;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;color:#1E3A5F;display:flex;justify-content:space-between;align-items:center;user-select:none}
 .accordion-header:hover{background:#EFF6FF}
 .accordion-body{display:none;padding:16px;border-top:1px solid #E2E8F0;overflow-x:auto}
 .accordion-body.open{display:block}
-.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-.kpi-sm{background:white;border-radius:8px;padding:10px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06);border-top:2px solid #1565C0}
-.kpi-sm .val{font-size:20px;font-weight:700;color:#1565C0}
-.kpi-sm .lbl{font-size:10px;color:#64748B;text-transform:uppercase}
+.okr-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.okr-sm{background:white;border-radius:8px;padding:10px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06);border-top:2px solid #1565C0}
+.okr-sm .val{font-size:20px;font-weight:700;color:#1565C0}
+.okr-sm .lbl{font-size:10px;color:#64748B;text-transform:uppercase}
 .analysis-grid{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start;margin-bottom:14px}
 .btn-add-row{background:#EFF6FF;border:1px dashed #93C5FD;color:#1565C0;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:8px}
 </style>
 {% endblock %}
 
 {% block content %}
-{% with lista_okrs=okrs_list|default:KPIs_list %}
+{% with lista_okrs=okrs_list|default:okrs_list %}
 
 {% if fig_overview_json %}
 <div class="section-card">
@@ -39,7 +39,7 @@
 {% endif %}
 
 <div class="section-card">
-  <div class="section-title">Cadastro e Gestão de KPIs</div>
+  <div class="section-title">Cadastro e Gestão de okrs</div>
   <p style="font-size:12px;color:#64748B;margin-bottom:10px">Edite diretamente. Adicione linhas. Marque <strong>Excluir</strong> para remover.</p>
 
   <form method="post" id="form-meta">
@@ -48,11 +48,11 @@
     <input type="hidden" name="rows_json" id="rows-meta-json">
 
     <div style="overflow-x:auto">
-      <table class="KPI-table" id="meta-table">
+      <table class="okr-table" id="meta-table">
         <thead>
           <tr>
             <th>#</th>
-            <th>Nome da KPI</th>
+            <th>Nome da okr</th>
             <th>Área</th>
             <th>Unidade</th>
             <th>Descrição</th>
@@ -94,7 +94,7 @@
 
     <button type="button" class="btn-add-row" onclick="addMetaRow()">➕ Nova KPI</button>
     <br><br>
-    <button type="button" class="btn btn-primary" onclick="saveMetaTable()">Aplicar KPIs</button>
+    <button type="button" class="btn btn-primary" onclick="saveMetaTable()">Aplicar okrs</button>
     <span style="font-size:12px;color:#64748B;margin-left:12px">Salve após editar. Dados de meses existentes são preservados.</span>
   </form>
 </div>
@@ -107,7 +107,7 @@
   </div>
 
   <div class="accordion-body" id="acc-prev">
-    <p style="font-size:12px;color:#64748B;margin-bottom:8px">Colunas M01..M36 = meses a partir do início de cada KPI.</p>
+    <p style="font-size:12px;color:#64748B;margin-bottom:8px">Colunas M01..M36 = meses a partir do início de cada okr.</p>
 
     <form method="post" id="form-prev">
       {% csrf_token %}
@@ -115,10 +115,10 @@
       <input type="hidden" name="rows_json" id="rows-prev-json">
 
       <div style="overflow-x:auto;max-height:320px">
-        <table class="KPI-table" id="prev-table">
+        <table class="okr-table" id="prev-table">
           <thead>
             <tr>
-              <th style="position:sticky;left:0;background:#1565C0;z-index:2">KPI</th>
+              <th style="position:sticky;left:0;background:#1565C0;z-index:2">okr</th>
               <th style="min-width:50px">Un.</th>
               {% for col in month_cols %}
               <th style="min-width:60px">{{ col }}</th>
@@ -158,10 +158,10 @@
       <input type="hidden" name="rows_json" id="rows-real-json">
 
       <div style="overflow-x:auto;max-height:320px">
-        <table class="KPI-table" id="real-table">
+        <table class="okr-table" id="real-table">
           <thead>
             <tr>
-              <th style="position:sticky;left:0;background:#1565C0;z-index:2">KPI</th>
+              <th style="position:sticky;left:0;background:#1565C0;z-index:2">okr</th>
               <th>Un.</th>
               {% for col in month_cols %}
               <th style="min-width:60px">{{ col }}</th>
@@ -192,14 +192,14 @@
   <div class="section-title">Análise Detalhada por KPI</div>
 
   <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">
-    <select id="KPI-select" class="form-control" style="max-width:320px" onchange="loadKPIAnalysis(this.value)">
+    <select id="okr-select" class="form-control" style="max-width:320px" onchange="loadokrAnalysis(this.value)">
       {% for o in lista_okrs %}
       <option value="{{ o.nome }}">{{ o.nome }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div id="KPI-analysis-kpis" class="kpi-row" style="display:none"></div>
+  <div id="okr-analysis-okrs" class="okr-row" style="display:none"></div>
 
   <div class="analysis-grid">
     <div id="chart-gauge"></div>
@@ -207,7 +207,7 @@
   </div>
 
   <div id="chart-cumulative"></div>
-  <div id="KPI-table-container"></div>
+  <div id="okr-table-container"></div>
 </div>
 {% else %}
 <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px;color:#92400E;font-size:13px">
@@ -312,7 +312,7 @@ function saveRealTable() {
   document.getElementById('form-real').submit();
 }
 
-function loadKPIAnalysis(nome) {
+function loadokrAnalysis(nome) {
   if (!nome) return;
 
   fetch('/planejamento/okrs/detail/' + encodeURIComponent(nome) + '/')
@@ -320,18 +320,18 @@ function loadKPIAnalysis(nome) {
     .then(function(data) {
       if (data.error) return;
 
-      var kpis = document.getElementById('KPI-analysis-kpis');
-      kpis.style.display = 'grid';
+      var okrs = document.getElementById('okr-analysis-okrs');
+      okrs.style.display = 'grid';
 
       var diff = data.tr - data.tp;
       var diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2);
       var pctColor = data.pct >= 90 ? '#43A047' : (data.pct >= 70 ? '#FB8C00' : '#E53935');
 
-      kpis.innerHTML =
-        '<div class="kpi-sm"><div class="val">'+data.tp.toFixed(2)+'</div><div class="lbl">Total Planejado ('+data.unidade+')</div></div>' +
-        '<div class="kpi-sm"><div class="val">'+data.tr.toFixed(2)+'</div><div class="lbl">Total Realizado ('+data.unidade+')</div></div>' +
-        '<div class="kpi-sm"><div class="val" style="color:'+(diff>=0?'#43A047':'#E53935')+'">'+diffStr+'</div><div class="lbl">Diferença</div></div>' +
-        '<div class="kpi-sm"><div class="val" style="color:'+pctColor+'">'+data.pct+'%</div><div class="lbl">% Realização</div></div>';
+      okrs.innerHTML =
+        '<div class="okr-sm"><div class="val">'+data.tp.toFixed(2)+'</div><div class="lbl">Total Planejado ('+data.unidade+')</div></div>' +
+        '<div class="okr-sm"><div class="val">'+data.tr.toFixed(2)+'</div><div class="lbl">Total Realizado ('+data.unidade+')</div></div>' +
+        '<div class="okr-sm"><div class="val" style="color:'+(diff>=0?'#43A047':'#E53935')+'">'+diffStr+'</div><div class="lbl">Diferença</div></div>' +
+        '<div class="okr-sm"><div class="val" style="color:'+pctColor+'">'+data.pct+'%</div><div class="lbl">% Realização</div></div>';
 
       var gFig = JSON.parse(data.fig_gauge);
       Plotly.react('chart-gauge', gFig.data, gFig.layout, {responsive:true,displayModeBar:false});
@@ -342,13 +342,13 @@ function loadKPIAnalysis(nome) {
       var cFig = JSON.parse(data.fig_cumulative);
       Plotly.react('chart-cumulative', cFig.data, cFig.layout, {responsive:true,displayModeBar:false});
 
-      var tableHtml = '<div style="overflow-x:auto;margin-top:14px"><table class="KPI-table"><thead><tr><th>Mês</th><th>Planejado</th><th>Realizado</th><th>Diferença</th><th>Status</th></tr></thead><tbody>';
+      var tableHtml = '<div style="overflow-x:auto;margin-top:14px"><table class="okr-table"><thead><tr><th>Mês</th><th>Planejado</th><th>Realizado</th><th>Diferença</th><th>Status</th></tr></thead><tbody>';
       data.table.forEach(function(row) {
         var dc = row.diff >= 0 ? '#059669' : '#DC2626';
         tableHtml += '<tr><td style="padding:6px 8px">'+row.mes+'</td><td style="padding:6px 8px">'+row.prev.toFixed(2)+'</td><td style="padding:6px 8px">'+row.real.toFixed(2)+'</td><td style="padding:6px 8px;color:'+dc+';font-weight:600">'+(row.diff>=0?'+':'')+row.diff.toFixed(2)+'</td><td style="padding:6px 8px">'+row.status+'</td></tr>';
       });
       tableHtml += '</tbody></table></div>';
-      document.getElementById('KPI-table-container').innerHTML = tableHtml;
+      document.getElementById('okr-table-container').innerHTML = tableHtml;
     })
     .catch(function(e) {
       console.error(e);
@@ -356,9 +356,9 @@ function loadKPIAnalysis(nome) {
 }
 
 window.addEventListener('load', function() {
-  var select = document.getElementById('KPI-select');
+  var select = document.getElementById('okr-select');
   if (select && select.value) {
-    loadKPIAnalysis(select.value);
+    loadokrAnalysis(select.value);
   }
 });
 </script>
@@ -379,7 +379,7 @@ window.addEventListener('load', function() {
     <input type="hidden" name="rows_json" id="rows-meta-json">
 
     <div style="overflow-x:auto">
-      <table class="KPI-table" id="meta-table">
+      <table class="okr-table" id="meta-table">
         <thead>
           <tr>
             <th>#</th>
@@ -392,7 +392,7 @@ window.addEventListener('load', function() {
           </tr>
         </thead>
         <tbody>
-          {% for o in KPIs_list %}
+          {% for o in okrs_list %}
           <tr>
             <td style="padding:5px 8px;color:#94A3B8;min-width:24px">{{ forloop.counter }}</td>
             <td><input type="text" value="{{ o.nome }}" data-field="nome" style="min-width:180px"></td>
@@ -430,7 +430,7 @@ window.addEventListener('load', function() {
   </form>
 </div>
 
-{% if KPIs_list %}
+{% if okrs_list %}
 
 <div class="accordion">
   <div class="accordion-header" onclick="toggleAccordion('acc-prev')">
@@ -439,17 +439,17 @@ window.addEventListener('load', function() {
   </div>
 
   <div class="accordion-body" id="acc-prev">
-    <p style="font-size:12px;color:#64748B;margin-bottom:8px">Colunas M01..M36 = meses a partir do Início de cada KPI.</p>
+    <p style="font-size:12px;color:#64748B;margin-bottom:8px">Colunas M01..M36 = meses a partir do Início de cada okr.</p>
 
     <form method="post" id="form-prev">{% csrf_token %}
       <input type="hidden" name="action" value="save_previsto">
       <input type="hidden" name="rows_json" id="rows-prev-json">
 
       <div style="overflow-x:auto;max-height:320px">
-        <table class="KPI-table" id="prev-table">
+        <table class="okr-table" id="prev-table">
           <thead>
             <tr>
-              <th style="position:sticky;left:0;background:#1565C0;z-index:2">KPI</th>
+              <th style="position:sticky;left:0;background:#1565C0;z-index:2">okr</th>
               <th style="min-width:50px">Un.</th>
               {% for col in month_cols %}
               <th style="min-width:60px">{{ col }}</th>
@@ -457,7 +457,7 @@ window.addEventListener('load', function() {
             </tr>
           </thead>
           <tbody>
-            {% for o in KPIs_list %}
+            {% for o in okrs_list %}
             <tr data-idx="{{ forloop.counter0 }}">
               <td style="position:sticky;left:0;background:white;z-index:1;font-weight:600;padding:5px 8px;min-width:150px;font-size:12px">{{ o.nome|truncatechars:25 }}</td>
               <td style="padding:5px 8px;color:#64748B">{{ o.unidade }}</td>
@@ -488,10 +488,10 @@ window.addEventListener('load', function() {
       <input type="hidden" name="rows_json" id="rows-real-json">
 
       <div style="overflow-x:auto;max-height:320px">
-        <table class="KPI-table" id="real-table">
+        <table class="okr-table" id="real-table">
           <thead>
             <tr>
-              <th style="position:sticky;left:0;background:#1565C0;z-index:2">KPI</th>
+              <th style="position:sticky;left:0;background:#1565C0;z-index:2">okr</th>
               <th>Un.</th>
               {% for col in month_cols %}
               <th style="min-width:60px">{{ col }}</th>
@@ -499,7 +499,7 @@ window.addEventListener('load', function() {
             </tr>
           </thead>
           <tbody>
-            {% for o in KPIs_list %}
+            {% for o in okrs_list %}
             <tr data-idx="{{ forloop.counter0 }}">
               <td style="position:sticky;left:0;background:white;z-index:1;font-weight:600;padding:5px 8px;min-width:150px;font-size:12px">{{ o.nome|truncatechars:25 }}</td>
               <td style="padding:5px 8px;color:#64748B">{{ o.unidade }}</td>
@@ -522,14 +522,14 @@ window.addEventListener('load', function() {
   <div class="section-title"> Análise Detalhada por KPI</div>
 
   <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">
-    <select id="KPI-select" class="form-control" style="max-width:320px" onchange="loadKPIAnalysis(this.value)">
-      {% for o in KPIs_list %}
+    <select id="okr-select" class="form-control" style="max-width:320px" onchange="loadokrAnalysis(this.value)">
+      {% for o in okrs_list %}
       <option value="{{ o.nome }}">{{ o.nome }}</option>
       {% endfor %}
     </select>
   </div>
 
-  <div id="KPI-analysis-kpis" class="kpi-row" style="display:none"></div>
+  <div id="okr-analysis-okrs" class="okr-row" style="display:none"></div>
 
   <div class="analysis-grid">
     <div id="chart-gauge"></div>
@@ -537,7 +537,7 @@ window.addEventListener('load', function() {
   </div>
 
   <div id="chart-cumulative"></div>
-  <div id="KPI-table-container"></div>
+  <div id="okr-table-container"></div>
 </div>
 
 {% else %}
@@ -552,7 +552,7 @@ window.addEventListener('load', function() {
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
 <script>
-var KPINames = {{ KPIs_list|length }};
+var okrNames = {{ okrs_list|length }};
 var unidadeOpts = {{ unidade_opts|safe }};
 var areaOpts = [{% for a in dados.areas %}"{{ a.area }}"{% if not forloop.last %},{% endif %}{% endfor %}];
 
@@ -650,24 +650,24 @@ function saveRealTable() {
   document.getElementById('form-real').submit();
 }
 
-function loadKPIAnalysis(nome) {
+function loadokrAnalysis(nome) {
   if (!nome) return;
 
-  fetch('/planejamento/KPIs/detail/' + encodeURIComponent(nome) + '/')
+  fetch('/planejamento/okrs/detail/' + encodeURIComponent(nome) + '/')
     .then(function(r){ return r.json(); })
     .then(function(data) {
-      var kpis = document.getElementById('KPI-analysis-kpis');
-      kpis.style.display = 'grid';
+      var okrs = document.getElementById('okr-analysis-okrs');
+      okrs.style.display = 'grid';
 
       var diff = data.tr - data.tp;
       var diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2);
       var pctColor = data.pct >= 90 ? '#43A047' : (data.pct >= 70 ? '#FB8C00' : '#E53935');
 
-      kpis.innerHTML =
-        '<div class="kpi-sm"><div class="val">'+data.tp.toFixed(2)+'</div><div class="lbl">Total Planejado ('+data.unidade+')</div></div>' +
-        '<div class="kpi-sm"><div class="val">'+data.tr.toFixed(2)+'</div><div class="lbl">Total Realizado ('+data.unidade+')</div></div>' +
-        '<div class="kpi-sm"><div class="val" style="color:'+(diff>=0?'#43A047':'#E53935')+'">'+diffStr+'</div><div class="lbl">Diferença</div></div>' +
-        '<div class="kpi-sm"><div class="val" style="color:'+pctColor+'">'+data.pct+'%</div><div class="lbl">% Realização</div></div>';
+      okrs.innerHTML =
+        '<div class="okr-sm"><div class="val">'+data.tp.toFixed(2)+'</div><div class="lbl">Total Planejado ('+data.unidade+')</div></div>' +
+        '<div class="okr-sm"><div class="val">'+data.tr.toFixed(2)+'</div><div class="lbl">Total Realizado ('+data.unidade+')</div></div>' +
+        '<div class="okr-sm"><div class="val" style="color:'+(diff>=0?'#43A047':'#E53935')+'">'+diffStr+'</div><div class="lbl">Diferença</div></div>' +
+        '<div class="okr-sm"><div class="val" style="color:'+pctColor+'">'+data.pct+'%</div><div class="lbl">% Realização</div></div>';
 
       var gFig = JSON.parse(data.fig_gauge);
       Plotly.react('chart-gauge', gFig.data, gFig.layout, {responsive:true,displayModeBar:false});
@@ -678,7 +678,7 @@ function loadKPIAnalysis(nome) {
       var cFig = JSON.parse(data.fig_cumulative);
       Plotly.react('chart-cumulative', cFig.data, cFig.layout, {responsive:true,displayModeBar:false});
 
-      var tableHtml = '<div style="overflow-x:auto;margin-top:14px"><table class="KPI-table"><thead><tr><th>Mês</th><th>Planejado</th><th>Realizado</th><th>Diferença</th><th>Status</th></tr></thead><tbody>';
+      var tableHtml = '<div style="overflow-x:auto;margin-top:14px"><table class="okr-table"><thead><tr><th>Mês</th><th>Planejado</th><th>Realizado</th><th>Diferença</th><th>Status</th></tr></thead><tbody>';
 
       data.table.forEach(function(row) {
         var dc = row.diff >= 0 ? '#059669' : '#DC2626';
@@ -686,14 +686,14 @@ function loadKPIAnalysis(nome) {
       });
 
       tableHtml += '</tbody></table></div>';
-      document.getElementById('KPI-table-container').innerHTML = tableHtml;
+      document.getElementById('okr-table-container').innerHTML = tableHtml;
     })
     .catch(function(e){ console.error(e); });
 }
 
-{% if KPIs_list %}
+{% if okrs_list %}
 window.addEventListener('load', function() {
-  loadKPIAnalysis(document.getElementById('KPI-select').value);
+  loadokrAnalysis(document.getElementById('okr-select').value);
 });
 {% endif %}
 </script>
