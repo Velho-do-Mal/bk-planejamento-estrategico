@@ -466,7 +466,7 @@ def fig_okrs_overview(dados: dict) -> Optional[str]:
         plot_bgcolor="#F8FAFC",
         margin=dict(l=40, r=60, t=40, b=60),
         font=dict(family="Segoe UI"),
-        title="Visão Geral OKRs — Planejado vs Realizado",
+        title="Visão Geral KPIs — Planejado vs Realizado",
     )
     return fig.to_json()
 
@@ -502,7 +502,7 @@ def export_excel(dados: dict) -> bytes:
                     row[f"M{i+1:02d}_real"] = m.get("realizado", 0)
                 rows.append(row)
 
-            pd.DataFrame(rows).to_excel(writer, sheet_name="OKRs", index=False)
+            pd.DataFrame(rows).to_excel(writer, sheet_name="KPIs", index=False)
 
         if dados.get("actions"):
             pd.DataFrame(dados["actions"]).to_excel(writer, sheet_name="Planos_Ação", index=False)
@@ -588,11 +588,11 @@ def build_html_report(dados: dict) -> str:
   body {{ font-family: 'Segoe UI', sans-serif; background: #F0F4F8; margin: 0; padding: 20px; color: #1a202c; }}
   .hero {{ background: linear-gradient(135deg, #1565C0, #00897B); color: white; padding: 32px; border-radius: 12px; margin-bottom: 24px; }}
   .hero h1 {{ margin: 0; font-size: 26px; }} .hero p {{ margin: 6px 0 0; opacity: .85; }}
-  .kpi-row {{ display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }}
-  .kpi {{ background: white; border-radius: 10px; padding: 18px 24px; text-align: center;
+  .okr-row {{ display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }}
+  .okr {{ background: white; border-radius: 10px; padding: 18px 24px; text-align: center;
           box-shadow: 0 2px 8px rgba(0,0,0,.07); border-top: 3px solid #1565C0; min-width: 130px; flex:1; }}
-  .kpi .val {{ font-size: 30px; font-weight: 700; color: #1565C0; }}
-  .kpi .lbl {{ font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }}
+  .okr .val {{ font-size: 30px; font-weight: 700; color: #1565C0; }}
+  .okr .lbl {{ font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }}
   .card {{ background: white; border-radius: 10px; padding: 20px 24px; margin-bottom: 20px;
            box-shadow: 0 2px 8px rgba(0,0,0,.06); }}
   .card h2 {{ font-size: 15px; color: #1565C0; border-bottom: 2px solid #E3F2FD; padding-bottom: 8px; margin-top: 0; }}
@@ -612,12 +612,12 @@ def build_html_report(dados: dict) -> str:
   <p>Gerado em {today} &nbsp;|&nbsp; Horizonte: 36 meses</p>
 </div>
 
-<div class="kpi-row">
-  <div class="kpi"><div class="val">{len(okrs)}</div><div class="lbl">OKRs</div></div>
-  <div class="kpi"><div class="val" style="color:{'#059669' if pct_geral>=90 else ('#D97706' if pct_geral>=70 else '#DC2626')}">{pct_geral:.1f}%</div><div class="lbl">Realização Geral</div></div>
-  <div class="kpi"><div class="val">{len(actions)}</div><div class="lbl">Planos de Ação</div></div>
-  <div class="kpi"><div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div></div>
-  <div class="kpi"><div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div></div>
+<div class="okr-row">
+  <div class="okr"><div class="val">{len(okrs)}</div><div class="lbl">KPIs</div></div>
+  <div class="okr"><div class="val" style="color:{'#059669' if pct_geral>=90 else ('#D97706' if pct_geral>=70 else '#DC2626')}">{pct_geral:.1f}%</div><div class="lbl">Realização Geral</div></div>
+  <div class="okr"><div class="val">{len(actions)}</div><div class="lbl">Planos de Ação</div></div>
+  <div class="okr"><div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div></div>
+  <div class="okr"><div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div></div>
 </div>
 
 <div class="card">
@@ -634,7 +634,7 @@ def build_html_report(dados: dict) -> str:
   </div>
 </div>
 
-{'<div class="card"><h2>📈 OKRs — Saúde Geral</h2><table><thead><tr><th></th><th>Nome</th><th>Área</th><th>Unidade</th><th>% Realização</th><th>Meses Preenchidos</th></tr></thead><tbody>' + okr_rows + '</tbody></table></div>' if okrs else ''}
+{'<div class="card"><h2>📈 KPIs — Saúde Geral</h2><table><thead><tr><th></th><th>Nome</th><th>Área</th><th>Unidade</th><th>% Realização</th><th>Meses Preenchidos</th></tr></thead><tbody>' + okr_rows + '</tbody></table></div>' if okrs else ''}
 
 {'<div class="card"><h2>⚖️ Análise SWOT</h2><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Prioridade</th></tr></thead><tbody>' + swot_rows + '</tbody></table></div>' if swot else ''}
 
@@ -969,7 +969,7 @@ def s(request):
         "dados": dados,
         "s_list": s_list,
         "okrs_list": s_list,
-        "KPIs_list": s_list,
+        "okrs_list": s_list,
         "unidade_opts": unidade_opts,
         "month_cols": month_cols,
         "fig_overview_json": fig_okrs_overview(dados),
@@ -1177,7 +1177,7 @@ def relatorios(request):
 
     low_fill = [o["nome"] for o in okrs if sum(1 for m in _ensure_okr_meses(o)["meses"] if m.get("realizado", 0) != 0) < 3]
     if low_fill:
-        recs.append(f"📊 OKRs com pouco histórico: {', '.join(low_fill[:3])} — preencha o realizado mensalmente.")
+        recs.append(f"📊 KPIs com pouco histórico: {', '.join(low_fill[:3])} — preencha o realizado mensalmente.")
     if not recs:
         recs.append("✅ Preencha Visão/Missão, SWOT e OKRs para gerar recomendações automáticas.")
 
