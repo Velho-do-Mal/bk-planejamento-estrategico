@@ -8,33 +8,361 @@
 <style>
 .section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
 .section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:12px}
-
 .KPI-table{width:100%;border-collapse:collapse;font-size:12px}
 .KPI-table th{background:#1565C0;color:white;padding:7px 8px;white-space:nowrap}
 .KPI-table td{padding:0;border-bottom:1px solid #E2E8F0}
 .KPI-table td input,.KPI-table td select{width:100%;padding:5px 7px;border:none;background:transparent;font-size:12px;font-family:inherit;min-width:60px}
 .KPI-table td input:focus,.KPI-table td select:focus{background:#EFF6FF;outline:none}
 .KPI-table tr:nth-child(even) td{background:#F8FAFC}
-
 .accordion{border:1px solid #E2E8F0;border-radius:8px;margin-bottom:10px;overflow:hidden}
 .accordion-header{background:#F8FAFC;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:600;color:#1E3A5F;display:flex;justify-content:space-between;align-items:center;user-select:none}
 .accordion-header:hover{background:#EFF6FF}
 .accordion-body{display:none;padding:16px;border-top:1px solid #E2E8F0;overflow-x:auto}
 .accordion-body.open{display:block}
-
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .kpi-sm{background:white;border-radius:8px;padding:10px 14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06);border-top:2px solid #1565C0}
 .kpi-sm .val{font-size:20px;font-weight:700;color:#1565C0}
 .kpi-sm .lbl{font-size:10px;color:#64748B;text-transform:uppercase}
-
 .analysis-grid{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start;margin-bottom:14px}
-
 .btn-add-row{background:#EFF6FF;border:1px dashed #93C5FD;color:#1565C0;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:8px}
 </style>
 {% endblock %}
 
 {% block content %}
+{% with lista_okrs=okrs_list|default:KPIs_list %}
 
+{% if fig_overview_json %}
+<div class="section-card">
+  <div class="section-title">Visão Geral — Planejado vs Realizado</div>
+  <div id="chart-overview"></div>
+</div>
+{% endif %}
+
+<div class="section-card">
+  <div class="section-title">Cadastro e Gestão de KPIs</div>
+  <p style="font-size:12px;color:#64748B;margin-bottom:10px">Edite diretamente. Adicione linhas. Marque <strong>Excluir</strong> para remover.</p>
+
+  <form method="post" id="form-meta">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_meta">
+    <input type="hidden" name="rows_json" id="rows-meta-json">
+
+    <div style="overflow-x:auto">
+      <table class="KPI-table" id="meta-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome da KPI</th>
+            <th>Área</th>
+            <th>Unidade</th>
+            <th>Descrição</th>
+            <th>Início (AAAA-MM)</th>
+            <th>Excluir</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for o in lista_okrs %}
+          <tr>
+            <td style="padding:5px 8px;color:#94A3B8;min-width:24px">{{ forloop.counter }}</td>
+            <td><input type="text" value="{{ o.nome }}" data-field="nome" style="min-width:180px"></td>
+            <td>
+              {% if dados.areas %}
+              <select data-field="area" style="min-width:120px">
+                {% for a in dados.areas %}
+                <option {% if a.area == o.area %}selected{% endif %}>{{ a.area }}</option>
+                {% endfor %}
+              </select>
+              {% else %}
+              <input type="text" value="{{ o.area }}" data-field="area" style="min-width:120px">
+              {% endif %}
+            </td>
+            <td>
+              <select data-field="unidade">
+                {% for u in unidade_opts %}
+                <option {% if u == o.unidade %}selected{% endif %}>{{ u }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><input type="text" value="{{ o.descricao }}" data-field="descricao" style="min-width:160px"></td>
+            <td><input type="text" value="{{ o.inicio }}" data-field="inicio" placeholder="2024-01" style="min-width:90px"></td>
+            <td style="padding:6px;text-align:center"><input type="checkbox" data-field="excluir" style="width:auto;padding:0"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <button type="button" class="btn-add-row" onclick="addMetaRow()">➕ Nova KPI</button>
+    <br><br>
+    <button type="button" class="btn btn-primary" onclick="saveMetaTable()">Aplicar KPIs</button>
+    <span style="font-size:12px;color:#64748B;margin-left:12px">Salve após editar. Dados de meses existentes são preservados.</span>
+  </form>
+</div>
+
+{% if lista_okrs %}
+<div class="accordion">
+  <div class="accordion-header" onclick="toggleAccordion('acc-prev')">
+    Planejado (Previsto) — 36 meses
+    <span id="acc-prev-icon">▼</span>
+  </div>
+
+  <div class="accordion-body" id="acc-prev">
+    <p style="font-size:12px;color:#64748B;margin-bottom:8px">Colunas M01..M36 = meses a partir do início de cada KPI.</p>
+
+    <form method="post" id="form-prev">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_previsto">
+      <input type="hidden" name="rows_json" id="rows-prev-json">
+
+      <div style="overflow-x:auto;max-height:320px">
+        <table class="KPI-table" id="prev-table">
+          <thead>
+            <tr>
+              <th style="position:sticky;left:0;background:#1565C0;z-index:2">KPI</th>
+              <th style="min-width:50px">Un.</th>
+              {% for col in month_cols %}
+              <th style="min-width:60px">{{ col }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in lista_okrs %}
+            <tr data-idx="{{ forloop.counter0 }}">
+              <td style="position:sticky;left:0;background:white;z-index:1;font-weight:600;padding:5px 8px;min-width:150px;font-size:12px">{{ o.nome|truncatechars:25 }}</td>
+              <td style="padding:5px 8px;color:#64748B">{{ o.unidade }}</td>
+              {% for m in o.meses %}
+              <td><input type="number" step="0.01" value="{{ m.previsto }}" data-field="M{{ forloop.counter|stringformat:'02d' }}" style="min-width:55px"></td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <br>
+      <button type="button" class="btn btn-primary" onclick="savePrevTable()">Salvar Planejado</button>
+    </form>
+  </div>
+</div>
+
+<div class="accordion">
+  <div class="accordion-header" onclick="toggleAccordion('acc-real')">
+    Realizado — 36 meses
+    <span id="acc-real-icon">▼</span>
+  </div>
+
+  <div class="accordion-body" id="acc-real">
+    <form method="post" id="form-real">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_realizado">
+      <input type="hidden" name="rows_json" id="rows-real-json">
+
+      <div style="overflow-x:auto;max-height:320px">
+        <table class="KPI-table" id="real-table">
+          <thead>
+            <tr>
+              <th style="position:sticky;left:0;background:#1565C0;z-index:2">KPI</th>
+              <th>Un.</th>
+              {% for col in month_cols %}
+              <th style="min-width:60px">{{ col }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in lista_okrs %}
+            <tr data-idx="{{ forloop.counter0 }}">
+              <td style="position:sticky;left:0;background:white;z-index:1;font-weight:600;padding:5px 8px;min-width:150px;font-size:12px">{{ o.nome|truncatechars:25 }}</td>
+              <td style="padding:5px 8px;color:#64748B">{{ o.unidade }}</td>
+              {% for m in o.meses %}
+              <td><input type="number" step="0.01" value="{{ m.realizado }}" data-field="M{{ forloop.counter|stringformat:'02d' }}" style="min-width:55px"></td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <br>
+      <button type="button" class="btn btn-primary" onclick="saveRealTable()">Salvar Realizado</button>
+    </form>
+  </div>
+</div>
+
+<div class="section-card">
+  <div class="section-title">Análise Detalhada por KPI</div>
+
+  <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px">
+    <select id="KPI-select" class="form-control" style="max-width:320px" onchange="loadKPIAnalysis(this.value)">
+      {% for o in lista_okrs %}
+      <option value="{{ o.nome }}">{{ o.nome }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div id="KPI-analysis-kpis" class="kpi-row" style="display:none"></div>
+
+  <div class="analysis-grid">
+    <div id="chart-gauge"></div>
+    <div id="chart-monthly"></div>
+  </div>
+
+  <div id="chart-cumulative"></div>
+  <div id="KPI-table-container"></div>
+</div>
+{% else %}
+<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px;color:#92400E;font-size:13px">
+  ⚠️ Cadastre ao menos 1 KPI para liberar as tabelas e gráficos.
+</div>
+{% endif %}
+
+{% endwith %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+var unidadeOpts = {{ unidade_opts|safe }};
+var areaOpts = [{% for a in dados.areas %}"{{ a.area }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+
+function toggleAccordion(id) {
+  var body = document.getElementById(id);
+  var icon = document.getElementById(id + '-icon');
+  if (body.classList.contains('open')) {
+    body.classList.remove('open');
+    icon.textContent = '▼';
+  } else {
+    body.classList.add('open');
+    icon.textContent = '▲';
+  }
+}
+
+{% if fig_overview_json %}
+Plotly.newPlot(
+  'chart-overview',
+  JSON.parse('{{ fig_overview_json|escapejs }}').data,
+  JSON.parse('{{ fig_overview_json|escapejs }}').layout,
+  {responsive:true, displayModeBar:false}
+);
+{% endif %}
+
+function addMetaRow() {
+  var tbody = document.querySelector('#meta-table tbody');
+  var idx = tbody.rows.length + 1;
+  var tr = document.createElement('tr');
+
+  var areaOpt = areaOpts.length
+    ? '<select data-field="area" style="min-width:120px">' + areaOpts.map(function(a){return '<option>'+a+'</option>'}).join('') + '</select>'
+    : '<input type="text" data-field="area" style="min-width:120px">';
+
+  var unOpt = '<select data-field="unidade">' + unidadeOpts.map(function(u){return '<option>'+u+'</option>'}).join('') + '</select>';
+
+  tr.innerHTML =
+    '<td style="padding:5px 8px;color:#94A3B8">'+idx+'</td>' +
+    '<td><input type="text" data-field="nome" style="min-width:180px"></td>' +
+    '<td>' + areaOpt + '</td>' +
+    '<td>' + unOpt + '</td>' +
+    '<td><input type="text" data-field="descricao" style="min-width:160px"></td>' +
+    '<td><input type="text" data-field="inicio" placeholder="2024-01" style="min-width:90px"></td>' +
+    '<td style="padding:6px;text-align:center"><input type="checkbox" data-field="excluir" style="width:auto;padding:0"></td>';
+
+  tbody.appendChild(tr);
+}
+
+function collectTable(tableId) {
+  var rows = [];
+  document.querySelectorAll('#' + tableId + ' tbody tr').forEach(function(tr) {
+    var row = {};
+    tr.querySelectorAll('[data-field]').forEach(function(el) {
+      row[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    rows.push(row);
+  });
+  return rows;
+}
+
+function saveMetaTable() {
+  document.getElementById('rows-meta-json').value = JSON.stringify(collectTable('meta-table'));
+  document.getElementById('form-meta').submit();
+}
+
+function savePrevTable() {
+  var rows = [];
+  document.querySelectorAll('#prev-table tbody tr').forEach(function(tr) {
+    var row = { idx: tr.dataset.idx };
+    tr.querySelectorAll('input[data-field]').forEach(function(inp) {
+      row[inp.dataset.field] = parseFloat(inp.value) || 0;
+    });
+    rows.push(row);
+  });
+  document.getElementById('rows-prev-json').value = JSON.stringify(rows);
+  document.getElementById('form-prev').submit();
+}
+
+function saveRealTable() {
+  var rows = [];
+  document.querySelectorAll('#real-table tbody tr').forEach(function(tr) {
+    var row = { idx: tr.dataset.idx };
+    tr.querySelectorAll('input[data-field]').forEach(function(inp) {
+      row[inp.dataset.field] = parseFloat(inp.value) || 0;
+    });
+    rows.push(row);
+  });
+  document.getElementById('rows-real-json').value = JSON.stringify(rows);
+  document.getElementById('form-real').submit();
+}
+
+function loadKPIAnalysis(nome) {
+  if (!nome) return;
+
+  fetch('/planejamento/okrs/detail/' + encodeURIComponent(nome) + '/')
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data.error) return;
+
+      var kpis = document.getElementById('KPI-analysis-kpis');
+      kpis.style.display = 'grid';
+
+      var diff = data.tr - data.tp;
+      var diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(2);
+      var pctColor = data.pct >= 90 ? '#43A047' : (data.pct >= 70 ? '#FB8C00' : '#E53935');
+
+      kpis.innerHTML =
+        '<div class="kpi-sm"><div class="val">'+data.tp.toFixed(2)+'</div><div class="lbl">Total Planejado ('+data.unidade+')</div></div>' +
+        '<div class="kpi-sm"><div class="val">'+data.tr.toFixed(2)+'</div><div class="lbl">Total Realizado ('+data.unidade+')</div></div>' +
+        '<div class="kpi-sm"><div class="val" style="color:'+(diff>=0?'#43A047':'#E53935')+'">'+diffStr+'</div><div class="lbl">Diferença</div></div>' +
+        '<div class="kpi-sm"><div class="val" style="color:'+pctColor+'">'+data.pct+'%</div><div class="lbl">% Realização</div></div>';
+
+      var gFig = JSON.parse(data.fig_gauge);
+      Plotly.react('chart-gauge', gFig.data, gFig.layout, {responsive:true,displayModeBar:false});
+
+      var mFig = JSON.parse(data.fig_monthly);
+      Plotly.react('chart-monthly', mFig.data, mFig.layout, {responsive:true,displayModeBar:false});
+
+      var cFig = JSON.parse(data.fig_cumulative);
+      Plotly.react('chart-cumulative', cFig.data, cFig.layout, {responsive:true,displayModeBar:false});
+
+      var tableHtml = '<div style="overflow-x:auto;margin-top:14px"><table class="KPI-table"><thead><tr><th>Mês</th><th>Planejado</th><th>Realizado</th><th>Diferença</th><th>Status</th></tr></thead><tbody>';
+      data.table.forEach(function(row) {
+        var dc = row.diff >= 0 ? '#059669' : '#DC2626';
+        tableHtml += '<tr><td style="padding:6px 8px">'+row.mes+'</td><td style="padding:6px 8px">'+row.prev.toFixed(2)+'</td><td style="padding:6px 8px">'+row.real.toFixed(2)+'</td><td style="padding:6px 8px;color:'+dc+';font-weight:600">'+(row.diff>=0?'+':'')+row.diff.toFixed(2)+'</td><td style="padding:6px 8px">'+row.status+'</td></tr>';
+      });
+      tableHtml += '</tbody></table></div>';
+      document.getElementById('KPI-table-container').innerHTML = tableHtml;
+    })
+    .catch(function(e) {
+      console.error(e);
+    });
+}
+
+window.addEventListener('load', function() {
+  var select = document.getElementById('KPI-select');
+  if (select && select.value) {
+    loadKPIAnalysis(select.value);
+  }
+});
+</script>
+{% endblock %}
 {% if fig_overview_json %}
 <div class="section-card">
   <div class="section-title"> Visão Geral — Planejado vs Realizado</div>
