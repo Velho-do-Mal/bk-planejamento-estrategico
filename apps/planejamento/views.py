@@ -740,44 +740,63 @@ def swot(request):
 
 
 @login_required
+@login_required
 def okrs(request):
     dados = get_planning()
-    if request.method == 'POST':
-        action = request.POST.get('action')
-        if action == 'save_meta':
-            rows_json = request.POST.get('rows_json', '[]')
+    dados.setdefault("okrs", [])
+    dados["okrs"] = [_ensure_okr_meses(o) for o in dados["okrs"]]
+
+    unidade_opts = ["R$", "%", "un", "clientes", "projetos", "h", "dias", "índice"]
+    month_cols = [f"M{i:02d}" for i in range(1, 37)]
+
+    if request.method == "POST":
+        action = request.POST.get("action", "").strip()
+
+        if action == "save_meta":
+            rows_json = request.POST.get("rows_json", "[]")
             try:
                 rows = json.loads(rows_json)
-                # Sincroniza OKRs preservando dados de meses existentes
-                existing = {o['nome']: o for o in dados['okrs']}
-                new_okrs = []
-                for r in rows:
-                    if not r.get('nome', '').strip() or r.get('excluir'):
+                antigos = [_ensure_okr_meses(dict(o)) for o in dados.get("okrs", [])]
+                novos = []
+
+                for idx, row in enumerate(rows):
+                    if row.get("excluir"):
                         continue
-                    old = existing.get(r['nome'], {})
-                    new_okrs.append({
-                        'nome': r['nome'],
-                        'area': r.get('area', ''),
-                        'unidade': r.get('unidade', 'R$'),
-                        'descricao': r.get('descricao', ''),
-                        'inicio': r.get('inicio', ''),
-                        'meses': old.get('meses', [{'previsto': 0.0, 'realizado': 0.0}] * 36),
+
+                    nome = _clean_text(row.get("nome"))
+                    if not nome:
+                        continue
+
+                    existente = antigos[idx] if idx < len(antigos) else None
+                    meses = existente.get("meses", []) if existente else []
+                    while len(meses) < 36:
+                        meses.append({"previsto": 0.0, "realizado": 0.0})
+
+                    novos.append({
+                        "nome": nome,
+                        "area": _clean_text(row.get("area")),
+                        "unidade": _clean_text(row.get("unidade"), "un"),
+                        "descricao": _clean_text(row.get("descricao")),
+                        "inicio": _clean_text(row.get("inicio")),
+                        "meses": meses[:36],
                     })
-                dados['okrs'] = new_okrs
-                save_planning(dados)
-                messages.success(request, 'OKRs atualizadas!')
-            except Exception as e:
-                messages.error(request, f'Erro: {e}')
 
-        elif action == 'save_previsto':
-            rows_json = request.POST.get('rows_json', '[]')
+                dados["okrs"] = novos
+                save_planning(dados)
+                messages.success(request, "KPIs salvos com sucesso.")
+            except Exception as e:
+                messages.error(request, f"Erro ao salvar KPIs: {e}")
+
+            return redirect("planejamento:okrs")
+
+        elif action == "save_previsto":
+            rows_json = request.POST.get("rows_json", "[]")
             try:
                 rows = json.loads(rows_json)
 
                 for row in rows:
-                    row_idx = row.get('idx')
-
-                    if row_idx is None or row_idx == '':
+                    row_idx = row.get("idx")
+                    if row_idx is None or row_idx == "":
                         continue
 
                     try:
@@ -785,34 +804,35 @@ def okrs(request):
                     except (TypeError, ValueError):
                         continue
 
-                    if idx < 0 or idx >= len(dados['okrs']):
+                    if idx < 0 or idx >= len(dados["okrs"]):
                         continue
 
-                    dados['okrs'][idx] = _ensure_okr_meses(dados['okrs'][idx])
-                    okr = dados['okrs'][idx]
+                    dados["okrs"][idx] = _ensure_okr_meses(dados["okrs"][idx])
+                    okr = dados["okrs"][idx]
 
                     for i in range(36):
-                        key = f'M{i+1:02d}'
+                        key = f"M{i+1:02d}"
                         if key in row:
                             try:
-                                okr['meses'][i]['previsto'] = float(row[key] or 0)
+                                okr["meses"][i]["previsto"] = float(row[key] or 0)
                             except (TypeError, ValueError):
-                                okr['meses'][i]['previsto'] = 0.0
+                                okr["meses"][i]["previsto"] = 0.0
 
                 save_planning(dados)
-                messages.success(request, 'Planejado salvo!')
+                messages.success(request, "Planejado salvo com sucesso.")
             except Exception as e:
-                messages.error(request, f'Erro: {e}')
+                messages.error(request, f"Erro ao salvar planejado: {e}")
 
-        elif action == 'save_realizado':
-            rows_json = request.POST.get('rows_json', '[]')
+            return redirect("planejamento:okrs")
+
+        elif action == "save_realizado":
+            rows_json = request.POST.get("rows_json", "[]")
             try:
                 rows = json.loads(rows_json)
 
                 for row in rows:
-                    row_idx = row.get('idx')
-
-                    if row_idx is None or row_idx == '':
+                    row_idx = row.get("idx")
+                    if row_idx is None or row_idx == "":
                         continue
 
                     try:
@@ -820,84 +840,92 @@ def okrs(request):
                     except (TypeError, ValueError):
                         continue
 
-                    if idx < 0 or idx >= len(dados['okrs']):
+                    if idx < 0 or idx >= len(dados["okrs"]):
                         continue
 
-                    dados['okrs'][idx] = _ensure_okr_meses(dados['okrs'][idx])
-                    okr = dados['okrs'][idx]
+                    dados["okrs"][idx] = _ensure_okr_meses(dados["okrs"][idx])
+                    okr = dados["okrs"][idx]
 
                     for i in range(36):
-                        key = f'M{i+1:02d}'
+                        key = f"M{i+1:02d}"
                         if key in row:
                             try:
-                                okr['meses'][i]['realizado'] = float(row[key] or 0)
+                                okr["meses"][i]["realizado"] = float(row[key] or 0)
                             except (TypeError, ValueError):
-                                okr['meses'][i]['realizado'] = 0.0
+                                okr["meses"][i]["realizado"] = 0.0
 
                 save_planning(dados)
-                messages.success(request, 'Realizado salvo!')
+                messages.success(request, "Realizado salvo com sucesso.")
             except Exception as e:
-                messages.error(request, f'Erro: {e}')
+                messages.error(request, f"Erro ao salvar realizado: {e}")
 
-        return redirect('planejamento:okrs')
+            return redirect("planejamento:okrs")
 
-    okrs_list = [_ensure_okr_meses(o) for o in dados.get('okrs', [])]
-    fig_overview = fig_okrs_overview(dados)
+    okrs_list = [_ensure_okr_meses(dict(o)) for o in dados.get("okrs", [])]
 
-    # Preparar dados wide para tabelas
-    okr_wide_prev = []
-    okr_wide_real = []
-    for o in okrs_list:
-        row_p = {'nome': o['nome'], 'unidade': o.get('unidade', '')}
-        row_r = {'nome': o['nome'], 'unidade': o.get('unidade', '')}
-        for i, m in enumerate(o['meses']):
-            row_p[f'M{i+1:02d}'] = m.get('previsto', 0)
-            row_r[f'M{i+1:02d}'] = m.get('realizado', 0)
-        okr_wide_prev.append(row_p)
-        okr_wide_real.append(row_r)
-
-    month_cols = [f'M{i+1:02d}' for i in range(36)]
-
-    return render(request, 'planejamento/okrs.html', {
-        'dados': dados,
-        'okrs_list': okrs_list,
-        'fig_overview_json': fig_overview,
-        'okr_wide_prev_json': json.dumps(okr_wide_prev),
-        'okr_wide_real_json': json.dumps(okr_wide_real),
-        'month_cols': month_cols,
-        'unidade_opts': ['R$', '%', 'Inteiro', 'horas', 'projetos', 'clientes', 'NPS'],
-    })
-
+    context = {
+        "dados": dados,
+        "okrs_list": okrs_list,
+        "KPIs_list": okrs_list,   # compatibilidade com template antigo
+        "unidade_opts": unidade_opts,
+        "month_cols": month_cols,
+        "fig_overview_json": fig_okrs_overview(dados),
+    }
+    return render(request, "planejamento/okrs.html", context)
 
 @login_required
 def okr_detail_json(request, nome):
-    """Retorna JSON dos gráficos para um OKR específico."""
     dados = get_planning()
-    okr = next((o for o in dados['okrs'] if o['nome'] == nome), None)
+    okrs = dados.get("okrs", [])
+
+    okr = None
+    for item in okrs:
+        if str(item.get("nome", "")).strip() == str(nome).strip():
+            okr = _ensure_okr_meses(item)
+            break
+
     if not okr:
-        return JsonResponse({'error': 'OKR não encontrada'}, status=404)
-    okr = _ensure_okr_meses(okr)
+        return JsonResponse({"error": "KPI não encontrada."}, status=404)
+
+    tp = sum(float(m.get("previsto", 0) or 0) for m in okr["meses"])
+    tr = sum(float(m.get("realizado", 0) or 0) for m in okr["meses"])
+    pct = round((tr / tp * 100), 1) if tp > 0 else 0.0
+
     labels = _month_labels_for_okr(okr)
-    prev = [float(m.get('previsto', 0)) for m in okr['meses']]
-    real = [float(m.get('realizado', 0)) for m in okr['meses']]
-    tp = sum(prev); tr = sum(real)
-    pct = (tr / tp * 100) if tp > 0 else 0
-    diff = [r - p for r, p in zip(real, prev)]
-    status_list = ['✅ Acima' if d > 0 else ('⚠️ Abaixo' if d < 0 else '➖ Meta') for d in diff]
+    table = []
 
-    table_rows = [{'mes': l, 'prev': p, 'real': r, 'diff': d, 'status': s}
-                  for l, p, r, d, s in zip(labels, prev, real, diff, status_list)]
+    for i, mes in enumerate(okr["meses"]):
+        prev = float(mes.get("previsto", 0) or 0)
+        real = float(mes.get("realizado", 0) or 0)
+        diff = real - prev
 
-    return JsonResponse({
-        'fig_monthly': fig_okr_monthly(okr),
-        'fig_cumulative': fig_okr_cumulative(okr),
-        'fig_gauge': fig_okr_gauge(okr),
-        'labels': labels,
-        'table': table_rows,
-        'tp': tp, 'tr': tr, 'pct': round(pct, 1),
-        'diff': tr - tp,
-        'unidade': okr.get('unidade', ''),
-    })
+        if real >= prev and prev > 0:
+            status = "Acima/atingido"
+        elif real > 0 and real < prev:
+            status = "Abaixo"
+        else:
+            status = "Sem realização"
+
+        table.append({
+            "mes": labels[i],
+            "prev": prev,
+            "real": real,
+            "diff": diff,
+            "status": status,
+        })
+
+    payload = {
+        "nome": okr.get("nome", ""),
+        "unidade": okr.get("unidade", ""),
+        "tp": tp,
+        "tr": tr,
+        "pct": pct,
+        "fig_gauge": fig_okr_gauge(okr),
+        "fig_monthly": fig_okr_monthly(okr),
+        "fig_cumulative": fig_okr_cumulative(okr),
+        "table": table,
+    }
+    return JsonResponse(payload)
 
 
 @login_required
