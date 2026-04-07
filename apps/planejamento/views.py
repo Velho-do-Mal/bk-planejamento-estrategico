@@ -145,7 +145,7 @@ def _safe_date(s) -> Optional[date]:
 
 def _ensure__meses(okr: dict) -> dict:
     """Garante que  tem 36 meses com previsto/realizado."""
-    meses = .get('meses', [])
+    meses = okr.get('meses', [])
     while len(meses) < 36:
         meses.append({'previsto': 0.0, 'realizado': 0.0})
     ['meses'] = meses[:36]
@@ -153,7 +153,7 @@ def _ensure__meses(okr: dict) -> dict:
 
 
 def _month_labels_for_(: dict) -> List[str]:
-    inicio_str = .get('inicio', '')
+    inicio_str = okr.get('inicio', '')
     try:
         if inicio_str:
             dt = datetime.strptime(str(inicio_str)[:7], "%Y-%m")
