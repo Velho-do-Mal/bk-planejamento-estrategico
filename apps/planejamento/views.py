@@ -148,7 +148,7 @@ def _ensure__meses(okr: dict) -> dict:
     meses = okr.get('meses', [])
     while len(meses) < 36:
         meses.append({'previsto': 0.0, 'realizado': 0.0})
-    ['meses'] = meses[:36]
+    okr['meses'] = meses[:36]
     return 
 
 
