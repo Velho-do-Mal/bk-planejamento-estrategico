@@ -204,7 +204,7 @@ def fig__monthly(okr: dict) -> str:
 
 
 def fig__cumulative(: dict) -> str:
-     = _ensure__meses()
+    okr = _ensure__meses()
     labels = _month_labels_for_()
     prev = [float(m.get('previsto', 0)) for m in ['meses']]
     real = [float(m.get('realizado', 0)) for m in ['meses']]
@@ -222,7 +222,7 @@ def fig__cumulative(: dict) -> str:
 
 
 def fig__gauge(: dict) -> str:
-     = _ensure__meses()
+    okr = _ensure__meses()
     tp = sum(float(m.get('previsto', 0)) for m in ['meses'])
     tr = sum(float(m.get('realizado', 0)) for m in ['meses'])
     pct = (tr / tp * 100) if tp > 0 else 0
