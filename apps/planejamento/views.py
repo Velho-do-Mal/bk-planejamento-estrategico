@@ -913,44 +913,59 @@ def s(request):
                 if not isinstance(dados["s"], list):
                     dados["s"] = []
 
+                # Processar cada linha
                 for row in rows:
-                    row_idx = row.get("idx")
-                    if row_idx is None or row_idx == "":
-                        continue
-
                     try:
-                        idx = int(row_idx)
-                    except (TypeError, ValueError):
-                        continue
+                        row_idx = row.get("idx")
+                        if row_idx is None or row_idx == "":
+                            continue
 
-                    # Validar indice
-                    if idx < 0 or idx >= len(dados["s"]):
-                        # Se o indice eh invalido, pular esta linha
-                        continue
+                        # Converter índice para inteiro
+                        try:
+                            idx = int(row_idx)
+                        except (TypeError, ValueError):
+                            continue
 
-                    # Garantir que o OKR tem a estrutura correta
-                    if not isinstance(dados["s"][idx], dict):
-                        dados["s"][idx] = {}
+                        # Validar índice
+                        if idx < 0 or idx >= len(dados["s"]):
+                            continue
+
+                        # Garantir que o OKR tem a estrutura correta
+                        okr = dados["s"][idx]
+                        if not isinstance(okr, dict):
+                            okr = {}
+                            dados["s"][idx] = okr
+                        
+                        # Garantir estrutura de meses
+                        okr = _ensure_okr_meses(okr)
+                        dados["s"][idx] = okr
+                        
+                        if "meses" not in okr:
+                            okr["meses"] = []
+                        
+                        # Garantir 36 meses
+                        while len(okr["meses"]) < 36:
+                            okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
+
+                        # Atualizar valores de previsto
+                        for i in range(36):
+                            key = f"M{i+1:02d}"
+                            if key in row:
+                                try:
+                                    valor = float(row[key] or 0)
+                                    if i < len(okr["meses"]):
+                                        okr["meses"][i]["previsto"] = valor
+                                except (TypeError, ValueError, KeyError):
+                                    if i < len(okr["meses"]):
+                                        okr["meses"][i]["previsto"] = 0.0
                     
-                    dados["s"][idx] = _ensure_okr_meses(dados["s"][idx])
-                    okr = dados["s"][idx]
+                    except Exception as row_error:
+                        # Log do erro da linha mas continua processando
+                        import traceback
+                        traceback.print_exc()
+                        continue
 
-                    # Garantir que meses existe e tem 36 elementos
-                    if "meses" not in okr or not isinstance(okr["meses"], list):
-                        okr["meses"] = []
-                    while len(okr["meses"]) < 36:
-                        okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
-
-                    # Atualizar valores de previsto
-                    for i in range(36):
-                        key = f"M{i+1:02d}"
-                        if key in row and i < len(okr["meses"]):
-                            try:
-                                valor = float(row[key] or 0)
-                                okr["meses"][i]["previsto"] = valor
-                            except (TypeError, ValueError):
-                                okr["meses"][i]["previsto"] = 0.0
-
+                # Salvar dados
                 save_planning(dados)
                 messages.success(request, "Planejado salvo com sucesso.")
             except Exception as e:
@@ -971,44 +986,59 @@ def s(request):
                 if not isinstance(dados["s"], list):
                     dados["s"] = []
 
+                # Processar cada linha
                 for row in rows:
-                    row_idx = row.get("idx")
-                    if row_idx is None or row_idx == "":
-                        continue
-
                     try:
-                        idx = int(row_idx)
-                    except (TypeError, ValueError):
-                        continue
+                        row_idx = row.get("idx")
+                        if row_idx is None or row_idx == "":
+                            continue
 
-                    # Validar indice
-                    if idx < 0 or idx >= len(dados["s"]):
-                        # Se o indice eh invalido, pular esta linha
-                        continue
+                        # Converter índice para inteiro
+                        try:
+                            idx = int(row_idx)
+                        except (TypeError, ValueError):
+                            continue
 
-                    # Garantir que o OKR tem a estrutura correta
-                    if not isinstance(dados["s"][idx], dict):
-                        dados["s"][idx] = {}
+                        # Validar índice
+                        if idx < 0 or idx >= len(dados["s"]):
+                            continue
+
+                        # Garantir que o OKR tem a estrutura correta
+                        okr = dados["s"][idx]
+                        if not isinstance(okr, dict):
+                            okr = {}
+                            dados["s"][idx] = okr
+                        
+                        # Garantir estrutura de meses
+                        okr = _ensure_okr_meses(okr)
+                        dados["s"][idx] = okr
+                        
+                        if "meses" not in okr:
+                            okr["meses"] = []
+                        
+                        # Garantir 36 meses
+                        while len(okr["meses"]) < 36:
+                            okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
+
+                        # Atualizar valores de realizado
+                        for i in range(36):
+                            key = f"M{i+1:02d}"
+                            if key in row:
+                                try:
+                                    valor = float(row[key] or 0)
+                                    if i < len(okr["meses"]):
+                                        okr["meses"][i]["realizado"] = valor
+                                except (TypeError, ValueError, KeyError):
+                                    if i < len(okr["meses"]):
+                                        okr["meses"][i]["realizado"] = 0.0
                     
-                    dados["s"][idx] = _ensure_okr_meses(dados["s"][idx])
-                    okr = dados["s"][idx]
+                    except Exception as row_error:
+                        # Log do erro da linha mas continua processando
+                        import traceback
+                        traceback.print_exc()
+                        continue
 
-                    # Garantir que meses existe e tem 36 elementos
-                    if "meses" not in okr or not isinstance(okr["meses"], list):
-                        okr["meses"] = []
-                    while len(okr["meses"]) < 36:
-                        okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
-
-                    # Atualizar valores de realizado
-                    for i in range(36):
-                        key = f"M{i+1:02d}"
-                        if key in row and i < len(okr["meses"]):
-                            try:
-                                valor = float(row[key] or 0)
-                                okr["meses"][i]["realizado"] = valor
-                            except (TypeError, ValueError):
-                                okr["meses"][i]["realizado"] = 0.0
-
+                # Salvar dados
                 save_planning(dados)
                 messages.success(request, "Realizado salvo com sucesso.")
             except Exception as e:
