@@ -923,22 +923,31 @@ def s(request):
                     except (TypeError, ValueError):
                         continue
 
+                    # Validar indice
                     if idx < 0 or idx >= len(dados["s"]):
+                        # Se o indice eh invalido, pular esta linha
                         continue
 
+                    # Garantir que o OKR tem a estrutura correta
+                    if not isinstance(dados["s"][idx], dict):
+                        dados["s"][idx] = {}
+                    
                     dados["s"][idx] = _ensure_okr_meses(dados["s"][idx])
                     okr = dados["s"][idx]
 
+                    # Garantir que meses existe e tem 36 elementos
                     if "meses" not in okr or not isinstance(okr["meses"], list):
                         okr["meses"] = []
                     while len(okr["meses"]) < 36:
                         okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
 
+                    # Atualizar valores de previsto
                     for i in range(36):
                         key = f"M{i+1:02d}"
-                        if key in row:
+                        if key in row and i < len(okr["meses"]):
                             try:
-                                okr["meses"][i]["previsto"] = float(row[key] or 0)
+                                valor = float(row[key] or 0)
+                                okr["meses"][i]["previsto"] = valor
                             except (TypeError, ValueError):
                                 okr["meses"][i]["previsto"] = 0.0
 
@@ -972,22 +981,31 @@ def s(request):
                     except (TypeError, ValueError):
                         continue
 
+                    # Validar indice
                     if idx < 0 or idx >= len(dados["s"]):
+                        # Se o indice eh invalido, pular esta linha
                         continue
 
+                    # Garantir que o OKR tem a estrutura correta
+                    if not isinstance(dados["s"][idx], dict):
+                        dados["s"][idx] = {}
+                    
                     dados["s"][idx] = _ensure_okr_meses(dados["s"][idx])
                     okr = dados["s"][idx]
 
+                    # Garantir que meses existe e tem 36 elementos
                     if "meses" not in okr or not isinstance(okr["meses"], list):
                         okr["meses"] = []
                     while len(okr["meses"]) < 36:
                         okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
 
+                    # Atualizar valores de realizado
                     for i in range(36):
                         key = f"M{i+1:02d}"
-                        if key in row:
+                        if key in row and i < len(okr["meses"]):
                             try:
-                                okr["meses"][i]["realizado"] = float(row[key] or 0)
+                                valor = float(row[key] or 0)
+                                okr["meses"][i]["realizado"] = valor
                             except (TypeError, ValueError):
                                 okr["meses"][i]["realizado"] = 0.0
 
