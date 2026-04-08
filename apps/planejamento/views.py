@@ -159,27 +159,46 @@ def _safe_date(s) -> Optional[date]:
 
 def _ensure_okr_meses(okr: dict) -> dict:
     """Garante que o item tenha 36 meses com previsto/realizado."""
-    if not isinstance(okr, dict):
-        okr = {}
+    try:
+        if not isinstance(okr, dict):
+            okr = {}
 
-    meses = okr.get("meses", [])
-    if not isinstance(meses, list):
-        meses = []
+        meses = okr.get("meses", [])
+        if not isinstance(meses, list):
+            meses = []
 
-    meses_corrigidos = []
-    for i in range(36):
-        if i < len(meses) and isinstance(meses[i], dict):
-            mes = meses[i]
-        else:
-            mes = {}
+        meses_corrigidos = []
+        for i in range(36):
+            if i < len(meses) and isinstance(meses[i], dict):
+                mes = meses[i]
+            else:
+                mes = {}
 
-        meses_corrigidos.append({
-            "previsto": float(mes.get("previsto", 0) or 0),
-            "realizado": float(mes.get("realizado", 0) or 0),
-        })
+            # Converter valores com tratamento de erro
+            try:
+                previsto = float(mes.get("previsto", 0) or 0)
+            except (TypeError, ValueError):
+                previsto = 0.0
+            
+            try:
+                realizado = float(mes.get("realizado", 0) or 0)
+            except (TypeError, ValueError):
+                realizado = 0.0
 
-    okr["meses"] = meses_corrigidos
-    return okr
+            meses_corrigidos.append({
+                "previsto": previsto,
+                "realizado": realizado,
+            })
+
+        okr["meses"] = meses_corrigidos
+        return okr
+    except Exception as e:
+        # Se algo der muito errado, retornar estrutura padrao
+        import traceback
+        traceback.print_exc()
+        return {
+            "meses": [{"previsto": 0.0, "realizado": 0.0} for _ in range(36)]
+        }
 
 
 def _month_labels_for_okr(okr: dict) -> List[str]:
