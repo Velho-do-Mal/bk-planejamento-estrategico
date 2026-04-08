@@ -924,7 +924,17 @@ def s(request):
         elif action == "save_previsto":
             rows_json = request.POST.get("rows_json", "[]")
             try:
-                rows = json.loads(rows_json)
+                # Fazer parsing do JSON
+                try:
+                    rows = json.loads(rows_json)
+                except json.JSONDecodeError as e:
+                    messages.error(request, f"Erro ao processar dados JSON: {str(e)}")
+                    return redirect("planejamento:s")
+                
+                # Validar que rows eh uma lista
+                if not isinstance(rows, list):
+                    messages.error(request, "Dados invalidos: esperado lista")
+                    return redirect("planejamento:s")
                 
                 # Garantir que dados["s"] existe e eh uma lista
                 if "s" not in dados:
@@ -932,8 +942,14 @@ def s(request):
                 if not isinstance(dados["s"], list):
                     dados["s"] = []
 
+                # Fazer uma cópia para validação antes de salvar
+                dados_backup = json.loads(json.dumps(dados))
+                
                 # Processar cada linha
                 for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                        
                     try:
                         row_idx = row.get("idx")
                         if row_idx is None or row_idx == "":
@@ -959,7 +975,7 @@ def s(request):
                         okr = _ensure_okr_meses(okr)
                         dados["s"][idx] = okr
                         
-                        if "meses" not in okr:
+                        if "meses" not in okr or not isinstance(okr["meses"], list):
                             okr["meses"] = []
                         
                         # Garantir 36 meses
@@ -972,24 +988,26 @@ def s(request):
                             if key in row:
                                 try:
                                     valor = float(row[key] or 0)
-                                    if i < len(okr["meses"]):
+                                    if i < len(okr["meses"]) and isinstance(okr["meses"][i], dict):
                                         okr["meses"][i]["previsto"] = valor
-                                except (TypeError, ValueError, KeyError):
-                                    if i < len(okr["meses"]):
-                                        okr["meses"][i]["previsto"] = 0.0
+                                except (TypeError, ValueError, KeyError, IndexError):
+                                    pass
                     
                     except Exception as row_error:
-                        # Log do erro da linha mas continua processando
+                        # Log do erro mas continua
                         import traceback
                         traceback.print_exc()
                         continue
 
-                # Salvar dados
+                # Salvar dados apenas se tudo passou
                 save_planning(dados)
                 messages.success(request, "Planejado salvo com sucesso.")
             except Exception as e:
+                # Se erro, restaurar backup
                 import traceback
                 traceback.print_exc()
+                dados = dados_backup if 'dados_backup' in locals() else dados
+                save_planning(dados)
                 messages.error(request, f"Erro ao salvar planejado: {str(e)}")
 
             return redirect("planejamento:s")
@@ -997,7 +1015,17 @@ def s(request):
         elif action == "save_realizado":
             rows_json = request.POST.get("rows_json", "[]")
             try:
-                rows = json.loads(rows_json)
+                # Fazer parsing do JSON
+                try:
+                    rows = json.loads(rows_json)
+                except json.JSONDecodeError as e:
+                    messages.error(request, f"Erro ao processar dados JSON: {str(e)}")
+                    return redirect("planejamento:s")
+                
+                # Validar que rows eh uma lista
+                if not isinstance(rows, list):
+                    messages.error(request, "Dados invalidos: esperado lista")
+                    return redirect("planejamento:s")
                 
                 # Garantir que dados["s"] existe e eh uma lista
                 if "s" not in dados:
@@ -1005,8 +1033,14 @@ def s(request):
                 if not isinstance(dados["s"], list):
                     dados["s"] = []
 
+                # Fazer uma cópia para validação antes de salvar
+                dados_backup = json.loads(json.dumps(dados))
+                
                 # Processar cada linha
                 for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                        
                     try:
                         row_idx = row.get("idx")
                         if row_idx is None or row_idx == "":
@@ -1032,7 +1066,7 @@ def s(request):
                         okr = _ensure_okr_meses(okr)
                         dados["s"][idx] = okr
                         
-                        if "meses" not in okr:
+                        if "meses" not in okr or not isinstance(okr["meses"], list):
                             okr["meses"] = []
                         
                         # Garantir 36 meses
@@ -1045,24 +1079,26 @@ def s(request):
                             if key in row:
                                 try:
                                     valor = float(row[key] or 0)
-                                    if i < len(okr["meses"]):
+                                    if i < len(okr["meses"]) and isinstance(okr["meses"][i], dict):
                                         okr["meses"][i]["realizado"] = valor
-                                except (TypeError, ValueError, KeyError):
-                                    if i < len(okr["meses"]):
-                                        okr["meses"][i]["realizado"] = 0.0
+                                except (TypeError, ValueError, KeyError, IndexError):
+                                    pass
                     
                     except Exception as row_error:
-                        # Log do erro da linha mas continua processando
+                        # Log do erro mas continua
                         import traceback
                         traceback.print_exc()
                         continue
 
-                # Salvar dados
+                # Salvar dados apenas se tudo passou
                 save_planning(dados)
                 messages.success(request, "Realizado salvo com sucesso.")
             except Exception as e:
+                # Se erro, restaurar backup
                 import traceback
                 traceback.print_exc()
+                dados = dados_backup if 'dados_backup' in locals() else dados
+                save_planning(dados)
                 messages.error(request, f"Erro ao salvar realizado: {str(e)}")
 
             return redirect("planejamento:s")
