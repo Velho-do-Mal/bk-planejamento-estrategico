@@ -906,6 +906,12 @@ def s(request):
             rows_json = request.POST.get("rows_json", "[]")
             try:
                 rows = json.loads(rows_json)
+                
+                # Garantir que dados["s"] existe e eh uma lista
+                if "s" not in dados:
+                    dados["s"] = []
+                if not isinstance(dados["s"], list):
+                    dados["s"] = []
 
                 for row in rows:
                     row_idx = row.get("idx")
@@ -922,6 +928,11 @@ def s(request):
 
                     dados["s"][idx] = _ensure_okr_meses(dados["s"][idx])
                     okr = dados["s"][idx]
+
+                    if "meses" not in okr or not isinstance(okr["meses"], list):
+                        okr["meses"] = []
+                    while len(okr["meses"]) < 36:
+                        okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
 
                     for i in range(36):
                         key = f"M{i+1:02d}"
@@ -934,7 +945,9 @@ def s(request):
                 save_planning(dados)
                 messages.success(request, "Planejado salvo com sucesso.")
             except Exception as e:
-                messages.error(request, f"Erro ao salvar planejado: {e}")
+                import traceback
+                traceback.print_exc()
+                messages.error(request, f"Erro ao salvar planejado: {str(e)}")
 
             return redirect("planejamento:s")
 
@@ -942,6 +955,12 @@ def s(request):
             rows_json = request.POST.get("rows_json", "[]")
             try:
                 rows = json.loads(rows_json)
+                
+                # Garantir que dados["s"] existe e eh uma lista
+                if "s" not in dados:
+                    dados["s"] = []
+                if not isinstance(dados["s"], list):
+                    dados["s"] = []
 
                 for row in rows:
                     row_idx = row.get("idx")
@@ -959,6 +978,11 @@ def s(request):
                     dados["s"][idx] = _ensure_okr_meses(dados["s"][idx])
                     okr = dados["s"][idx]
 
+                    if "meses" not in okr or not isinstance(okr["meses"], list):
+                        okr["meses"] = []
+                    while len(okr["meses"]) < 36:
+                        okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
+
                     for i in range(36):
                         key = f"M{i+1:02d}"
                         if key in row:
@@ -970,7 +994,9 @@ def s(request):
                 save_planning(dados)
                 messages.success(request, "Realizado salvo com sucesso.")
             except Exception as e:
-                messages.error(request, f"Erro ao salvar realizado: {e}")
+                import traceback
+                traceback.print_exc()
+                messages.error(request, f"Erro ao salvar realizado: {str(e)}")
 
             return redirect("planejamento:s")
 
