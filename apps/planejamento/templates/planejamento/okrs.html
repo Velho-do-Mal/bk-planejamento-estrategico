@@ -131,7 +131,7 @@
               <td style="position:sticky;left:0;background:white;z-index:1;font-weight:600;padding:5px 8px;min-width:150px;font-size:12px">{{ o.nome|truncatechars:25 }}</td>
               <td style="padding:5px 8px;color:#64748B">{{ o.unidade }}</td>
               {% for m in o.meses %}
-              <td><input type="number" step="0.01" value="{% if m.previsto %}{{ m.previsto }}{% endif %}" data-field="M{{ forloop.counter|stringformat:'02d' }}" style="min-width:55px"></td>
+              <td><input type="number" step="0.01" value="{% if m.previsto %}{{ m.previsto|stringformat:'.10g' }}{% endif %}" data-field="M{{ forloop.counter|stringformat:'02d' }}" style="min-width:55px"></td>
               {% endfor %}
             </tr>
             {% endfor %}
@@ -174,7 +174,7 @@
               <td style="position:sticky;left:0;background:white;z-index:1;font-weight:600;padding:5px 8px;min-width:150px;font-size:12px">{{ o.nome|truncatechars:25 }}</td>
               <td style="padding:5px 8px;color:#64748B">{{ o.unidade }}</td>
               {% for m in o.meses %}
-              <td><input type="number" step="0.01" value="{% if m.realizado %}{{ m.realizado }}{% endif %}" data-field="M{{ forloop.counter|stringformat:'02d' }}" style="min-width:55px"></td>
+              <td><input type="number" step="0.01" value="{% if m.realizado %}{{ m.realizado|stringformat:'.10g' }}{% endif %}" data-field="M{{ forloop.counter|stringformat:'02d' }}" style="min-width:55px"></td>
               {% endfor %}
             </tr>
             {% endfor %}
@@ -295,7 +295,7 @@ function _saveTable(tableId, action, btnEl) {
   document.querySelectorAll('#' + tableId + ' tbody tr').forEach(function(tr) {
     var row = { idx: tr.dataset.idx };
     tr.querySelectorAll('input[data-field]').forEach(function(inp) {
-      row[inp.dataset.field] = parseFloat(inp.value) || 0;
+      row[inp.dataset.field] = parseFloat((inp.value || '').replace(',', '.')) || 0;
     });
     rows.push(row);
   });
