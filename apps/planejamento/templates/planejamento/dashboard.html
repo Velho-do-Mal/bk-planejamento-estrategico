@@ -35,7 +35,7 @@
 <div class="OKR-grid">
   <div class="OKR-card">
     <div class="val">{{ n_okrs }}</div>
-    <div class="lbl">OKRs</div>
+    <div class="lbl">KPIs</div>
   </div>
   <div class="OKR-card">
     <div class="val" style="color:{{ pct_real_color }}">{{ pct_real }}%</div>
@@ -69,7 +69,7 @@
 <!-- Gráfico OKR Overview -->
 {% if fig_overview_json %}
 <div class="chart-card">
-  <h4>📈 Visão Geral OKRs</h4>
+  <h4>📈 Visão Geral KPIs</h4>
   <div id="chart-overview"></div>
 </div>
 {% endif %}
@@ -116,7 +116,7 @@
 
 {% if not n_okrs %}
 <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:16px;text-align:center;color:#1E40AF;font-size:14px">
-  💡 <a href="{% url 'planejamento:okrs' %}" style="color:#1565C0;font-weight:600">Cadastre OKRs</a> para visualizar o dashboard completo.
+  💡 <a href="{% url 'planejamento:okrs' %}" style="color:#1565C0;font-weight:600">Cadastre KPIs</a> para visualizar o dashboard completo.
 </div>
 {% endif %}
 

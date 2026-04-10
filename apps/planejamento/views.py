@@ -919,7 +919,7 @@ def s(request):
             except Exception as e:
                 messages.error(request, f"Erro ao salvar KPIs: {e}")
 
-            return redirect("planejamento:s")
+            return redirect("planejamento:okrs")
 
         elif action == "save_previsto":
             rows_json = request.POST.get("rows_json", "[]")
@@ -929,12 +929,12 @@ def s(request):
                     rows = json.loads(rows_json)
                 except json.JSONDecodeError as e:
                     messages.error(request, f"Erro ao processar dados JSON: {str(e)}")
-                    return redirect("planejamento:s")
+                    return redirect("planejamento:okrs")
                 
                 # Validar que rows eh uma lista
                 if not isinstance(rows, list):
                     messages.error(request, "Dados invalidos: esperado lista")
-                    return redirect("planejamento:s")
+                    return redirect("planejamento:okrs")
                 
                 # Garantir que dados["s"] existe e eh uma lista
                 if "s" not in dados:
@@ -1010,7 +1010,7 @@ def s(request):
                 save_planning(dados)
                 messages.error(request, f"Erro ao salvar planejado: {str(e)}")
 
-            return redirect("planejamento:s")
+            return redirect("planejamento:okrs")
 
         elif action == "save_realizado":
             rows_json = request.POST.get("rows_json", "[]")
@@ -1020,12 +1020,12 @@ def s(request):
                     rows = json.loads(rows_json)
                 except json.JSONDecodeError as e:
                     messages.error(request, f"Erro ao processar dados JSON: {str(e)}")
-                    return redirect("planejamento:s")
+                    return redirect("planejamento:okrs")
                 
                 # Validar que rows eh uma lista
                 if not isinstance(rows, list):
                     messages.error(request, "Dados invalidos: esperado lista")
-                    return redirect("planejamento:s")
+                    return redirect("planejamento:okrs")
                 
                 # Garantir que dados["s"] existe e eh uma lista
                 if "s" not in dados:
@@ -1101,7 +1101,7 @@ def s(request):
                 save_planning(dados)
                 messages.error(request, f"Erro ao salvar realizado: {str(e)}")
 
-            return redirect("planejamento:s")
+            return redirect("planejamento:okrs")
 
     s_list = [_ensure_okr_meses(dict(o)) for o in dados.get("s", [])]
 
@@ -1189,6 +1189,7 @@ def planos_acao(request):
                     "titulo": titulo,
                     "area": request.POST.get("area", ""),
                     "responsavel": request.POST.get("responsavel", ""),
+                    "okr": request.POST.get("okr", ""),
                     "descricao": request.POST.get("descricao", ""),
                     "data_inicio": request.POST.get("data_inicio", ""),
                     "data_vencimento": request.POST.get("data_vencimento", ""),

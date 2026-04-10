@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}okrs — Planejamento{% endblock %}
+{% block title %}KPIs — Planejamento{% endblock %}
 {% block page_title %}Planejamento Estratégico{% endblock %}
-{% block page_sub %}okrs — Objetivos e Resultados-Chave (36 meses){% endblock %}
+{% block page_sub %}KPIs — Indicadores-Chave de Performance (36 meses){% endblock %}
 
 {% block extra_css %}
 <style>
@@ -39,7 +39,7 @@
 {% endif %}
 
 <div class="section-card">
-  <div class="section-title">Cadastro e Gestão de s</div>
+  <div class="section-title">Cadastro e Gestão de KPIs</div>
   <p style="font-size:12px;color:#64748B;margin-bottom:10px">Edite diretamente. Adicione linhas. Marque <strong>Excluir</strong> para remover.</p>
 
   <form method="post" id="form-meta">
@@ -107,7 +107,7 @@
   </div>
 
   <div class="accordion-body" id="acc-prev">
-    <p style="font-size:12px;color:#64748B;margin-bottom:8px">Colunas M01..M36 = meses a partir do início de cada okr.</p>
+    <p style="font-size:12px;color:#64748B;margin-bottom:8px">Colunas M01..M36 = meses a partir do início de cada KPI.</p>
 
     <form method="post" id="form-prev">
       {% csrf_token %}
@@ -118,7 +118,7 @@
         <table class="okr-table" id="prev-table">
           <thead>
             <tr>
-              <th style="position:sticky;left:0;background:#1565C0;z-index:2">OKR</th>
+              <th style="position:sticky;left:0;background:#1565C0;z-index:2">KPI</th>
               <th style="min-width:50px">Un.</th>
               {% for col in month_cols %}
               <th style="min-width:60px">{{ col }}</th>
@@ -161,7 +161,7 @@
         <table class="okr-table" id="real-table">
           <thead>
             <tr>
-              <th style="position:sticky;left:0;background:#1565C0;z-index:2">okr</th>
+              <th style="position:sticky;left:0;background:#1565C0;z-index:2">KPI</th>
               <th>Un.</th>
               {% for col in month_cols %}
               <th style="min-width:60px">{{ col }}</th>

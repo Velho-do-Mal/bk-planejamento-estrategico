@@ -52,11 +52,11 @@
       <div class="form-row-3">
         <div><label class="form-label">Título *</label><input type="text" name="titulo" class="form-control" required></div>
         <div>
-          <label class="form-label">OKR Vinculada</label>
-          {% if dados.okrs %}
+          <label class="form-label">KPI Vinculada</label>
+          {% if dados.s %}
           <select name="okr" class="form-control">
             <option value="">(nenhuma)</option>
-            {% for o in dados.okrs %}<option>{{ o.nome }}</option>{% endfor %}
+            {% for o in dados.s %}<option>{{ o.nome }}</option>{% endfor %}
           </select>
           {% else %}<input type="text" name="okr" class="form-control">{% endif %}
         </div>
@@ -117,7 +117,7 @@
           <th style="min-width:160px">Título</th>
           <th>Área</th>
           <th>Responsável</th>
-          <th>OKR</th>
+          <th>KPI</th>
           <th>Início</th>
           <th>Vencimento</th>
           <th>Status</th>
@@ -152,10 +152,10 @@
           {% else %}<input type="text" value="{{ a.responsavel }}" data-field="responsavel">{% endif %}
         </td>
         <td>
-          {% if dados.okrs %}
+          {% if dados.s %}
           <select data-field="okr" style="min-width:120px">
             <option value="">—</option>
-            {% for o in dados.okrs %}<option {% if o.nome == a.okr %}selected{% endif %}>{{ o.nome }}</option>{% endfor %}
+            {% for o in dados.s %}<option {% if o.nome == a.okr %}selected{% endif %}>{{ o.nome }}</option>{% endfor %}
           </select>
           {% else %}<input type="text" value="{{ a.okr }}" data-field="okr">{% endif %}
         </td>
