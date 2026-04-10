@@ -921,8 +921,10 @@ def s(request):
 
             return redirect("planejamento:okrs")
 
-        elif action == "save_previsto":
+        elif action in ("save_previsto", "save_realizado"):
+            campo = "previsto" if action == "save_previsto" else "realizado"
             rows_json = request.POST.get("rows_json", "[]")
+            is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
             try:
                 rows = json.loads(rows_json)
                 if not isinstance(rows, list):
@@ -941,7 +943,6 @@ def s(request):
                     okr = s_list[idx]
                     if not isinstance(okr, dict):
                         continue
-                    # Garantir 36 meses sem resetar realizado
                     meses = okr.setdefault("meses", [])
                     while len(meses) < 36:
                         meses.append({"previsto": 0.0, "realizado": 0.0})
@@ -949,57 +950,21 @@ def s(request):
                         key = f"M{i+1:02d}"
                         if key in row:
                             try:
-                                meses[i]["previsto"] = float(row[key] or 0)
+                                meses[i][campo] = float(row[key] or 0)
                             except (TypeError, ValueError):
                                 pass
 
                 save_planning(dados)
-                messages.success(request, "Planejado salvo com sucesso.")
+                label = "Planejado" if campo == "previsto" else "Realizado"
+                if is_ajax:
+                    return JsonResponse({"status": "ok", "msg": f"{label} salvo com sucesso."})
+                messages.success(request, f"{label} salvo com sucesso.")
             except Exception as e:
                 import traceback
                 traceback.print_exc()
-                messages.error(request, f"Erro ao salvar planejado: {str(e)}")
-
-            return redirect("planejamento:okrs")
-
-        elif action == "save_realizado":
-            rows_json = request.POST.get("rows_json", "[]")
-            try:
-                rows = json.loads(rows_json)
-                if not isinstance(rows, list):
-                    raise ValueError("rows_json deve ser uma lista")
-
-                s_list = dados.get("s", [])
-                for row in rows:
-                    if not isinstance(row, dict):
-                        continue
-                    try:
-                        idx = int(row.get("idx", -1))
-                    except (TypeError, ValueError):
-                        continue
-                    if idx < 0 or idx >= len(s_list):
-                        continue
-                    okr = s_list[idx]
-                    if not isinstance(okr, dict):
-                        continue
-                    # Garantir 36 meses sem resetar previsto
-                    meses = okr.setdefault("meses", [])
-                    while len(meses) < 36:
-                        meses.append({"previsto": 0.0, "realizado": 0.0})
-                    for i in range(36):
-                        key = f"M{i+1:02d}"
-                        if key in row:
-                            try:
-                                meses[i]["realizado"] = float(row[key] or 0)
-                            except (TypeError, ValueError):
-                                pass
-
-                save_planning(dados)
-                messages.success(request, "Realizado salvo com sucesso.")
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                messages.error(request, f"Erro ao salvar realizado: {str(e)}")
+                if is_ajax:
+                    return JsonResponse({"status": "error", "msg": str(e)}, status=400)
+                messages.error(request, f"Erro ao salvar: {str(e)}")
 
             return redirect("planejamento:okrs")
 

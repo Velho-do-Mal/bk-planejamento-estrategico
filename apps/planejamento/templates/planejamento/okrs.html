@@ -286,30 +286,67 @@ function saveMetaTable() {
   document.getElementById('form-meta').submit();
 }
 
-function savePrevTable() {
+function _getCsrf() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+function _saveTable(tableId, action, btnEl) {
   var rows = [];
-  document.querySelectorAll('#prev-table tbody tr').forEach(function(tr) {
+  document.querySelectorAll('#' + tableId + ' tbody tr').forEach(function(tr) {
     var row = { idx: tr.dataset.idx };
     tr.querySelectorAll('input[data-field]').forEach(function(inp) {
       row[inp.dataset.field] = parseFloat(inp.value) || 0;
     });
     rows.push(row);
   });
-  document.getElementById('rows-prev-json').value = JSON.stringify(rows);
-  document.getElementById('form-prev').submit();
+
+  var original = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = '⏳ Salvando...';
+
+  var fd = new FormData();
+  fd.append('csrfmiddlewaretoken', _getCsrf());
+  fd.append('action', action);
+  fd.append('rows_json', JSON.stringify(rows));
+
+  fetch(window.location.pathname, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    body: fd
+  })
+  .then(function(r) {
+    if (!r.ok) return r.json().then(function(d) { throw new Error(d.msg || ('HTTP ' + r.status)); });
+    return r.json();
+  })
+  .then(function(data) {
+    btnEl.disabled = false;
+    if (data.status === 'ok') {
+      btnEl.textContent = '✅ Salvo!';
+      btnEl.style.background = '#16a34a';
+      setTimeout(function() {
+        btnEl.textContent = original;
+        btnEl.style.background = '';
+      }, 2500);
+    } else {
+      throw new Error(data.msg || 'Erro desconhecido');
+    }
+  })
+  .catch(function(err) {
+    btnEl.disabled = false;
+    btnEl.textContent = '❌ Erro — tente novamente';
+    btnEl.style.background = '#dc2626';
+    setTimeout(function() { btnEl.textContent = original; btnEl.style.background = ''; }, 3500);
+    console.error('[save error]', err.message);
+    alert('Erro ao salvar: ' + err.message);
+  });
+}
+
+function savePrevTable() {
+  _saveTable('prev-table', 'save_previsto', document.querySelector('[onclick="savePrevTable()"]'));
 }
 
 function saveRealTable() {
-  var rows = [];
-  document.querySelectorAll('#real-table tbody tr').forEach(function(tr) {
-    var row = { idx: tr.dataset.idx };
-    tr.querySelectorAll('input[data-field]').forEach(function(inp) {
-      row[inp.dataset.field] = parseFloat(inp.value) || 0;
-    });
-    rows.push(row);
-  });
-  document.getElementById('rows-real-json').value = JSON.stringify(rows);
-  document.getElementById('form-real').submit();
+  _saveTable('real-table', 'save_realizado', document.querySelector('[onclick="saveRealTable()"]'));
 }
 
 function loadokrAnalysis(nome) {
