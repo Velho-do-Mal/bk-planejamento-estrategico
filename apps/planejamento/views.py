@@ -978,16 +978,31 @@ def s(request):
                 save_planning(dados)
                 label = "Planejado" if campo == "previsto" else "Realizado"
                 if is_ajax:
-                    # Conta valores não-zero para confirmar persist no console do browser
+                    # Conta no dict em memória (antes de reler banco)
                     non_zero = sum(
                         1 for okr in dados.get("s", [])
                         for m in okr.get("meses", [])
                         if (m.get(campo) or 0) != 0
                     )
+                    # Relê diretamente do banco para confirmar persistência
+                    try:
+                        db_obj = PlanningData.objects.get(slug="bk")
+                        verify_nz = sum(
+                            1 for okr in db_obj.dados.get("s", [])
+                            for m in okr.get("meses", [])
+                            if (m.get(campo) or 0) != 0
+                        )
+                    except Exception:
+                        verify_nz = -1
+                    print(
+                        f"[verify] campo={campo} non_zero_mem={non_zero} verify_db={verify_nz}",
+                        flush=True,
+                    )
                     return JsonResponse({
                         "status": "ok",
                         "msg": f"{label} salvo com sucesso.",
-                        "non_zero": non_zero,
+                        "non_zero": non_zero,   # no dict em memória
+                        "verify_db": verify_nz, # relido do banco agora mesmo
                     })
                 messages.success(request, f"{label} salvo com sucesso.")
             except Exception as e:

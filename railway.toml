@@ -2,4 +2,4 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn bk_plan.wsgi --bind 0.0.0.0:$PORT --workers 2 --log-file -"
+startCommand = "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn bk_plan.wsgi --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --log-file -"
