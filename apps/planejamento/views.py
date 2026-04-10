@@ -924,90 +924,40 @@ def s(request):
         elif action == "save_previsto":
             rows_json = request.POST.get("rows_json", "[]")
             try:
-                # Fazer parsing do JSON
-                try:
-                    rows = json.loads(rows_json)
-                except json.JSONDecodeError as e:
-                    messages.error(request, f"Erro ao processar dados JSON: {str(e)}")
-                    return redirect("planejamento:okrs")
-                
-                # Validar que rows eh uma lista
+                rows = json.loads(rows_json)
                 if not isinstance(rows, list):
-                    messages.error(request, "Dados invalidos: esperado lista")
-                    return redirect("planejamento:okrs")
-                
-                # Garantir que dados["s"] existe e eh uma lista
-                if "s" not in dados:
-                    dados["s"] = []
-                if not isinstance(dados["s"], list):
-                    dados["s"] = []
+                    raise ValueError("rows_json deve ser uma lista")
 
-                # Fazer uma cópia para validação antes de salvar
-                dados_backup = json.loads(json.dumps(dados))
-                
-                # Processar cada linha
+                s_list = dados.get("s", [])
                 for row in rows:
                     if not isinstance(row, dict):
                         continue
-                        
                     try:
-                        row_idx = row.get("idx")
-                        if row_idx is None or row_idx == "":
-                            continue
-
-                        # Converter índice para inteiro
-                        try:
-                            idx = int(row_idx)
-                        except (TypeError, ValueError):
-                            continue
-
-                        # Validar índice
-                        if idx < 0 or idx >= len(dados["s"]):
-                            continue
-
-                        # Garantir que o OKR tem a estrutura correta
-                        okr = dados["s"][idx]
-                        if not isinstance(okr, dict):
-                            okr = {}
-                            dados["s"][idx] = okr
-                        
-                        # Garantir estrutura de meses
-                        okr = _ensure_okr_meses(okr)
-                        dados["s"][idx] = okr
-                        
-                        if "meses" not in okr or not isinstance(okr["meses"], list):
-                            okr["meses"] = []
-                        
-                        # Garantir 36 meses
-                        while len(okr["meses"]) < 36:
-                            okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
-
-                        # Atualizar valores de previsto
-                        for i in range(36):
-                            key = f"M{i+1:02d}"
-                            if key in row:
-                                try:
-                                    valor = float(row[key] or 0)
-                                    if i < len(okr["meses"]) and isinstance(okr["meses"][i], dict):
-                                        okr["meses"][i]["previsto"] = valor
-                                except (TypeError, ValueError, KeyError, IndexError):
-                                    pass
-                    
-                    except Exception as row_error:
-                        # Log do erro mas continua
-                        import traceback
-                        traceback.print_exc()
+                        idx = int(row.get("idx", -1))
+                    except (TypeError, ValueError):
                         continue
+                    if idx < 0 or idx >= len(s_list):
+                        continue
+                    okr = s_list[idx]
+                    if not isinstance(okr, dict):
+                        continue
+                    # Garantir 36 meses sem resetar realizado
+                    meses = okr.setdefault("meses", [])
+                    while len(meses) < 36:
+                        meses.append({"previsto": 0.0, "realizado": 0.0})
+                    for i in range(36):
+                        key = f"M{i+1:02d}"
+                        if key in row:
+                            try:
+                                meses[i]["previsto"] = float(row[key] or 0)
+                            except (TypeError, ValueError):
+                                pass
 
-                # Salvar dados apenas se tudo passou
                 save_planning(dados)
                 messages.success(request, "Planejado salvo com sucesso.")
             except Exception as e:
-                # Se erro, restaurar backup
                 import traceback
                 traceback.print_exc()
-                dados = dados_backup if 'dados_backup' in locals() else dados
-                save_planning(dados)
                 messages.error(request, f"Erro ao salvar planejado: {str(e)}")
 
             return redirect("planejamento:okrs")
@@ -1015,90 +965,40 @@ def s(request):
         elif action == "save_realizado":
             rows_json = request.POST.get("rows_json", "[]")
             try:
-                # Fazer parsing do JSON
-                try:
-                    rows = json.loads(rows_json)
-                except json.JSONDecodeError as e:
-                    messages.error(request, f"Erro ao processar dados JSON: {str(e)}")
-                    return redirect("planejamento:okrs")
-                
-                # Validar que rows eh uma lista
+                rows = json.loads(rows_json)
                 if not isinstance(rows, list):
-                    messages.error(request, "Dados invalidos: esperado lista")
-                    return redirect("planejamento:okrs")
-                
-                # Garantir que dados["s"] existe e eh uma lista
-                if "s" not in dados:
-                    dados["s"] = []
-                if not isinstance(dados["s"], list):
-                    dados["s"] = []
+                    raise ValueError("rows_json deve ser uma lista")
 
-                # Fazer uma cópia para validação antes de salvar
-                dados_backup = json.loads(json.dumps(dados))
-                
-                # Processar cada linha
+                s_list = dados.get("s", [])
                 for row in rows:
                     if not isinstance(row, dict):
                         continue
-                        
                     try:
-                        row_idx = row.get("idx")
-                        if row_idx is None or row_idx == "":
-                            continue
-
-                        # Converter índice para inteiro
-                        try:
-                            idx = int(row_idx)
-                        except (TypeError, ValueError):
-                            continue
-
-                        # Validar índice
-                        if idx < 0 or idx >= len(dados["s"]):
-                            continue
-
-                        # Garantir que o OKR tem a estrutura correta
-                        okr = dados["s"][idx]
-                        if not isinstance(okr, dict):
-                            okr = {}
-                            dados["s"][idx] = okr
-                        
-                        # Garantir estrutura de meses
-                        okr = _ensure_okr_meses(okr)
-                        dados["s"][idx] = okr
-                        
-                        if "meses" not in okr or not isinstance(okr["meses"], list):
-                            okr["meses"] = []
-                        
-                        # Garantir 36 meses
-                        while len(okr["meses"]) < 36:
-                            okr["meses"].append({"previsto": 0.0, "realizado": 0.0})
-
-                        # Atualizar valores de realizado
-                        for i in range(36):
-                            key = f"M{i+1:02d}"
-                            if key in row:
-                                try:
-                                    valor = float(row[key] or 0)
-                                    if i < len(okr["meses"]) and isinstance(okr["meses"][i], dict):
-                                        okr["meses"][i]["realizado"] = valor
-                                except (TypeError, ValueError, KeyError, IndexError):
-                                    pass
-                    
-                    except Exception as row_error:
-                        # Log do erro mas continua
-                        import traceback
-                        traceback.print_exc()
+                        idx = int(row.get("idx", -1))
+                    except (TypeError, ValueError):
                         continue
+                    if idx < 0 or idx >= len(s_list):
+                        continue
+                    okr = s_list[idx]
+                    if not isinstance(okr, dict):
+                        continue
+                    # Garantir 36 meses sem resetar previsto
+                    meses = okr.setdefault("meses", [])
+                    while len(meses) < 36:
+                        meses.append({"previsto": 0.0, "realizado": 0.0})
+                    for i in range(36):
+                        key = f"M{i+1:02d}"
+                        if key in row:
+                            try:
+                                meses[i]["realizado"] = float(row[key] or 0)
+                            except (TypeError, ValueError):
+                                pass
 
-                # Salvar dados apenas se tudo passou
                 save_planning(dados)
                 messages.success(request, "Realizado salvo com sucesso.")
             except Exception as e:
-                # Se erro, restaurar backup
                 import traceback
                 traceback.print_exc()
-                dados = dados_backup if 'dados_backup' in locals() else dados
-                save_planning(dados)
                 messages.error(request, f"Erro ao salvar realizado: {str(e)}")
 
             return redirect("planejamento:okrs")
