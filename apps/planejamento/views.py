@@ -87,22 +87,29 @@ def get_planning() -> dict:
 
 def save_planning(dados: dict):
     """
-    Persiste o dicionário de planejamento no banco.
-
-    Usa update_or_create + deepcopy para garantir que o Django
-    detecte a mudança no JSONField mesmo quando o mesmo objeto
-    Python é reutilizado entre chamadas (evita o "silent no-op" do ORM).
+    Persiste o dicionário de planejamento no banco usando queryset.update()
+    — gera SQL UPDATE direto, sem passar pelo ORM instance/mutation detection.
     """
     import copy
-    dados_salvo = copy.deepcopy(dados)
-    obj, created = PlanningData.objects.update_or_create(
-        slug="bk",
-        defaults={"dados": dados_salvo},
+    dados_copia = copy.deepcopy(dados)
+
+    # Diagnóstico: conta valores não-zero antes de gravar
+    nz = sum(
+        1 for o in dados_copia.get("s", [])
+        for m in o.get("meses", [])
+        if (m.get("previsto") or 0) != 0 or (m.get("realizado") or 0) != 0
     )
-    # Atualiza o dict original com o que foi persistido,
-    # mantendo referência coerente para chamadas subsequentes.
-    dados.clear()
-    dados.update(obj.dados)
+    print(
+        f"[save_planning] kpis={len(dados_copia.get('s', []))} | non_zero_meses={nz}",
+        flush=True,
+    )
+
+    # Tenta UPDATE; se não existir o registro, cria.
+    updated = PlanningData.objects.filter(slug="bk").update(dados=dados_copia)
+    if not updated:
+        PlanningData.objects.create(slug="bk", dados=dados_copia)
+
+    print(f"[save_planning] rows_updated={updated}", flush=True)
 
 
 def _clean_text(value, default=""):
