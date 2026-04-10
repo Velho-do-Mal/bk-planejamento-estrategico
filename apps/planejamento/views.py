@@ -86,9 +86,23 @@ def get_planning() -> dict:
 
 
 def save_planning(dados: dict):
-    obj = PlanningData.get_or_create_default()
-    obj.dados = dados
-    obj.save()
+    """
+    Persiste o dicionário de planejamento no banco.
+
+    Usa update_or_create + deepcopy para garantir que o Django
+    detecte a mudança no JSONField mesmo quando o mesmo objeto
+    Python é reutilizado entre chamadas (evita o "silent no-op" do ORM).
+    """
+    import copy
+    dados_salvo = copy.deepcopy(dados)
+    obj, created = PlanningData.objects.update_or_create(
+        slug="bk",
+        defaults={"dados": dados_salvo},
+    )
+    # Atualiza o dict original com o que foi persistido,
+    # mantendo referência coerente para chamadas subsequentes.
+    dados.clear()
+    dados.update(obj.dados)
 
 
 def _clean_text(value, default=""):
@@ -957,7 +971,17 @@ def s(request):
                 save_planning(dados)
                 label = "Planejado" if campo == "previsto" else "Realizado"
                 if is_ajax:
-                    return JsonResponse({"status": "ok", "msg": f"{label} salvo com sucesso."})
+                    # Conta valores não-zero para confirmar persist no console do browser
+                    non_zero = sum(
+                        1 for okr in dados.get("s", [])
+                        for m in okr.get("meses", [])
+                        if (m.get(campo) or 0) != 0
+                    )
+                    return JsonResponse({
+                        "status": "ok",
+                        "msg": f"{label} salvo com sucesso.",
+                        "non_zero": non_zero,
+                    })
                 messages.success(request, f"{label} salvo com sucesso.")
             except Exception as e:
                 import traceback
