@@ -580,97 +580,294 @@ def export_csv_zip(dados: dict) -> bytes:
 
 
 def build_html_report(dados: dict) -> str:
-    today = date.today().strftime("%d/%m/%Y")
-    strategic = dados.get("strategic", {})
-    okrs = dados.get("s", [])
-    actions = dados.get("actions", [])
-    swot = dados.get("swot", [])
+    """
+    Gera relatório HTML completo com gráficos Plotly embutidos (inline).
+    Inclui: dashboard KPIs, gráfico overview, gauge + barras por KPI,
+    tabela detalhada planos de ação e charts de planos de ação.
+    """
+    today_str = date.today().strftime("%d/%m/%Y")
+    today_iso = date.today().isoformat()
+    strategic  = dados.get("strategic", {})
+    okrs       = dados.get("s", [])
+    actions    = dados.get("actions", [])
+    swot       = dados.get("swot", [])
 
-    total_prev = sum(float(m.get("previsto", 0)) for o in okrs for m in _ensure_okr_meses(o)["meses"])
+    # ── Totais gerais ──────────────────────────────────────────
+    total_prev = sum(float(m.get("previsto",  0)) for o in okrs for m in _ensure_okr_meses(o)["meses"])
     total_real = sum(float(m.get("realizado", 0)) for o in okrs for m in _ensure_okr_meses(o)["meses"])
-    pct_geral = (total_real / total_prev * 100) if total_prev > 0 else 0
+    pct_geral  = (total_real / total_prev * 100) if total_prev > 0 else 0
     n_concluidos = sum(1 for a in actions if a.get("status") == "Concluído")
-    n_atrasados = sum(
+    n_andamento  = sum(1 for a in actions if a.get("status") == "Em andamento")
+    n_pendente   = sum(1 for a in actions if a.get("status") == "Pendente")
+    n_atrasados  = sum(
         1 for a in actions
         if a.get("status") != "Concluído"
         and _safe_date(a.get("data_vencimento"))
         and _safe_date(a.get("data_vencimento")) < date.today()
     )
+    cor_geral = "#059669" if pct_geral >= 95 else ("#D97706" if pct_geral >= 70 else "#DC2626")
 
-    okr_rows = ""
-    for o in okrs:
-        o = _ensure_okr_meses(o)
-        tp = sum(float(m.get("previsto", 0)) for m in o["meses"])
+    # ── Gráfico Overview (somatório mensal prev vs real) ───────
+    overview_html = ""
+    if okrs:
+        all_prev = [0.0] * 36
+        all_real = [0.0] * 36
+        for o in okrs:
+            o = _ensure_okr_meses(o)
+            for i, m in enumerate(o["meses"][:36]):
+                all_prev[i] += float(m.get("previsto",  0))
+                all_real[i] += float(m.get("realizado", 0))
+        month_labels = [f"M{i+1:02d}" for i in range(36)]
+        fig_ov = go.Figure(data=[
+            go.Bar(name="Planejado", x=month_labels, y=all_prev,
+                   marker_color=BK_BLUE_LIGHT, opacity=0.85),
+            go.Bar(name="Realizado", x=month_labels, y=all_real,
+                   marker_color=BK_GREEN),
+        ])
+        fig_ov.update_layout(
+            barmode="group", height=300,
+            margin=dict(l=50, r=20, t=30, b=60),
+            legend=dict(orientation="h", y=1.08),
+            paper_bgcolor="white", plot_bgcolor="white",
+            xaxis=dict(tickangle=-45, tickfont=dict(size=9)),
+            title=dict(text="Planejado vs Realizado — Todos os KPIs (mensal)", font=dict(size=13)),
+        )
+        overview_html = fig_ov.to_html(full_html=False, include_plotlyjs=False)
+
+    # ── Tabela resumo KPIs + gráficos individuais ──────────────
+    okr_summary_rows = ""
+    kpi_detail_blocks = ""
+    for idx, o in enumerate(okrs):
+        o  = _ensure_okr_meses(o)
+        tp = sum(float(m.get("previsto",  0)) for m in o["meses"])
         tr = sum(float(m.get("realizado", 0)) for m in o["meses"])
-        pct = (tr / tp * 100) if tp > 0 else 0
-        cor = "#059669" if pct >= 95 else ("#D97706" if pct >= 70 else "#DC2626")
-        semaforo = "🟢" if pct >= 95 else ("🟡" if pct >= 70 else "🔴")
-        okr_rows += f"""<tr>
-            <td>{semaforo}</td><td>{o.get('nome','')}</td><td>{o.get('area','')}</td>
-            <td>{o.get('unidade','')}</td>
-            <td style="color:{cor};font-weight:700">{pct:.1f}%</td>
-            <td>{sum(1 for m in o['meses'] if float(m.get('realizado',0)) != 0)}/36</td>
+        pct    = (tr / tp * 100) if tp > 0 else 0
+        filled = sum(1 for m in o["meses"] if float(m.get("realizado", 0)) != 0)
+        cor    = "#059669" if pct >= 95 else ("#D97706" if pct >= 70 else "#DC2626")
+        sem    = "🟢" if pct >= 95 else ("🟡" if pct >= 70 else "🔴")
+
+        okr_summary_rows += f"""<tr>
+          <td style="text-align:center">{sem}</td>
+          <td><strong>{o.get('nome','')}</strong></td>
+          <td>{o.get('area','')}</td>
+          <td>{o.get('unidade','')}</td>
+          <td>{tp:.2f}</td>
+          <td>{tr:.2f}</td>
+          <td style="color:{cor};font-weight:700">{pct:.1f}%</td>
+          <td>{filled}/36</td>
         </tr>"""
 
+        # Gráfico barras individual
+        labels = _month_labels_for_okr(o)
+        prevs  = [float(m.get("previsto",  0)) for m in o["meses"]]
+        reals  = [float(m.get("realizado", 0)) for m in o["meses"]]
+        fig_bar = go.Figure(data=[
+            go.Bar(name="Planejado", x=labels, y=prevs,
+                   marker_color=BK_BLUE_LIGHT, opacity=0.85),
+            go.Bar(name="Realizado", x=labels, y=reals,
+                   marker_color=BK_GREEN),
+        ])
+        fig_bar.update_layout(
+            barmode="group", height=260,
+            margin=dict(l=50, r=20, t=10, b=60),
+            legend=dict(orientation="h", y=1.08),
+            paper_bgcolor="white", plot_bgcolor="white",
+            xaxis=dict(tickangle=-45, tickfont=dict(size=9)),
+        )
+
+        # Gauge realização
+        g_color = BK_GREEN if pct >= 95 else (BK_ORANGE if pct >= 70 else BK_RED)
+        fig_gauge = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=round(pct, 1),
+            number={"suffix": "%", "font": {"size": 22, "color": g_color}},
+            gauge={
+                "axis": {"range": [0, 120], "tickfont": {"size": 9}},
+                "bar":  {"color": g_color},
+                "steps": [
+                    {"range": [0,  70], "color": "#FEE2E2"},
+                    {"range": [70, 95], "color": "#FEF3C7"},
+                    {"range": [95,120], "color": "#D1FAE5"},
+                ],
+                "threshold": {"line": {"color": "#1565C0", "width": 2},
+                              "thickness": 0.75, "value": 100},
+            },
+        ))
+        fig_gauge.update_layout(
+            height=200,
+            margin=dict(l=10, r=10, t=10, b=10),
+            paper_bgcolor="white",
+        )
+
+        gauge_html = fig_gauge.to_html(full_html=False, include_plotlyjs=False)
+        bar_html   = fig_bar.to_html(full_html=False, include_plotlyjs=False)
+
+        kpi_detail_blocks += f"""
+        <div style="background:white;border:1px solid #E2E8F0;border-radius:10px;
+                    padding:20px;margin-bottom:20px;break-inside:avoid">
+          <h3 style="margin:0 0 12px;font-size:14px;color:#1565C0;
+                     border-bottom:2px solid #E3F2FD;padding-bottom:8px">
+            {sem} {o.get('nome','')}
+            <span style="font-weight:400;font-size:12px;color:#64748B;margin-left:8px">
+              {o.get('area','')} &nbsp;|&nbsp; {o.get('unidade','')}
+            </span>
+          </h3>
+          <div style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start">
+            <div>
+              <p style="font-size:11px;color:#64748B;margin:0 0 4px;text-align:center">% Realização</p>
+              {gauge_html}
+              <div style="display:flex;gap:8px;margin-top:8px;font-size:12px">
+                <div style="flex:1;background:#EFF6FF;border-radius:6px;padding:8px;text-align:center">
+                  <div style="font-weight:700;color:#1565C0">{tp:.2f}</div>
+                  <div style="font-size:10px;color:#64748B">Planejado</div>
+                </div>
+                <div style="flex:1;background:#F0FDF4;border-radius:6px;padding:8px;text-align:center">
+                  <div style="font-weight:700;color:{cor}">{tr:.2f}</div>
+                  <div style="font-size:10px;color:#64748B">Realizado</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p style="font-size:11px;color:#64748B;margin:0 0 4px">Planejado vs Realizado por Mês</p>
+              {bar_html}
+            </div>
+          </div>
+        </div>"""
+
+    # ── Tabela planos de ação ──────────────────────────────────
+    action_rows = ""
+    for a in actions:
+        sc  = STATUS_COLORS.get(a.get("status", ""), BK_GRAY)
+        dv  = a.get("data_vencimento", "—") or "—"
+        atrasado = (
+            a.get("status") != "Concluído"
+            and _safe_date(a.get("data_vencimento"))
+            and _safe_date(a.get("data_vencimento")) < date.today()
+        )
+        dv_html = f'<span style="color:#DC2626;font-weight:600">{dv} ⚠️</span>' if atrasado else dv
+        action_rows += f"""<tr>
+          <td><strong>{a.get('titulo','—')}</strong>
+            {'<br><span style="color:#64748B;font-size:11px">'+str(a.get('descricao',''))[:60]+'</span>' if a.get('descricao') else ''}
+          </td>
+          <td>{a.get('okr','—') or '—'}</td>
+          <td>{a.get('area','—') or '—'}</td>
+          <td>{a.get('responsavel','—') or '—'}</td>
+          <td>{dv_html}</td>
+          <td>{a.get('prioridade','—') or '—'}</td>
+          <td style="color:{sc};font-weight:600">{a.get('status','—')}</td>
+        </tr>"""
+
+    # ── Gráficos planos de ação ───────────────────────────────
+    ac_charts_html = ""
+    by_status = {}
+    by_area   = {}
+    for a in actions:
+        by_status[a.get("status","Pendente")] = by_status.get(a.get("status","Pendente"), 0) + 1
+        by_area[a.get("area","—")]            = by_area.get(a.get("area","—"), 0) + 1
+
+    if by_status and by_area:
+        sc_colors = [STATUS_COLORS.get(k, BK_GRAY) for k in by_status]
+        fig_pie = go.Figure(go.Pie(
+            labels=list(by_status.keys()), values=list(by_status.values()),
+            marker_colors=sc_colors, hole=0.4,
+            textinfo="label+percent", textfont_size=11,
+        ))
+        fig_pie.update_layout(
+            height=260, margin=dict(l=10,r=10,t=20,b=10),
+            paper_bgcolor="white", showlegend=False,
+            title=dict(text="Distribuição por Status", font=dict(size=12)),
+        )
+        sorted_areas = sorted(by_area.items(), key=lambda x: x[1], reverse=True)
+        fig_bar_ac = go.Figure(go.Bar(
+            x=[i[0] for i in sorted_areas], y=[i[1] for i in sorted_areas],
+            marker_color=BK_BLUE,
+            text=[i[1] for i in sorted_areas], textposition="outside",
+        ))
+        fig_bar_ac.update_layout(
+            height=260, margin=dict(l=10,r=10,t=30,b=70),
+            paper_bgcolor="white", plot_bgcolor="white",
+            xaxis=dict(tickangle=-30, tickfont=dict(size=10)),
+            yaxis=dict(showgrid=True, gridcolor="#E2E8F0"),
+            title=dict(text="Distribuição por Área", font=dict(size=12)),
+        )
+        pie_html    = fig_pie.to_html(full_html=False, include_plotlyjs=False)
+        bar_ac_html = fig_bar_ac.to_html(full_html=False, include_plotlyjs=False)
+        ac_charts_html = f"""
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>{pie_html}</div>
+          <div>{bar_ac_html}</div>
+        </div>"""
+
+    # ── SWOT ──────────────────────────────────────────────────
     swot_rows = ""
     for item in swot:
         cor = SWOT_COLORS.get(item.get("tipo", ""), BK_GRAY)
         swot_rows += f"""<tr>
-            <td style="color:{cor};font-weight:600">{item.get('tipo','')}</td>
-            <td>{item.get('descricao','')}</td>
-            <td>{item.get('prioridade','')}</td>
+          <td style="color:{cor};font-weight:600">{item.get('tipo','')}</td>
+          <td>{item.get('descricao','')}</td>
+          <td>{item.get('prioridade','')}</td>
         </tr>"""
 
-    action_rows = ""
-    for a in actions:
-        sc = STATUS_COLORS.get(a.get("status", ""), BK_GRAY)
-        action_rows += f"""<tr>
-            <td>{a.get('titulo','')}</td><td>{a.get('area','')}</td>
-            <td>{a.get('responsavel','')}</td><td>{a.get('data_vencimento','')}</td>
-            <td style="color:{sc};font-weight:600">{a.get('status','')}</td>
-        </tr>"""
-
+    # ── HTML final ─────────────────────────────────────────────
     html = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <title>Relatório Planejamento Estratégico — BK Engenharia</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
   body {{ font-family: 'Segoe UI', sans-serif; background: #F0F4F8; margin: 0; padding: 20px; color: #1a202c; }}
   .hero {{ background: linear-gradient(135deg, #1565C0, #00897B); color: white; padding: 32px; border-radius: 12px; margin-bottom: 24px; }}
-  .hero h1 {{ margin: 0; font-size: 26px; }} .hero p {{ margin: 6px 0 0; opacity: .85; }}
-  .okr-row {{ display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }}
-  .okr {{ background: white; border-radius: 10px; padding: 18px 24px; text-align: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,.07); border-top: 3px solid #1565C0; min-width: 130px; flex:1; }}
-  .okr .val {{ font-size: 30px; font-weight: 700; color: #1565C0; }}
-  .okr .lbl {{ font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }}
+  .hero h1 {{ margin: 0; font-size: 24px; }} .hero p {{ margin: 6px 0 0; opacity: .85; font-size: 13px; }}
+  .kpi-row {{ display: flex; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }}
+  .kpi {{ background: white; border-radius: 10px; padding: 16px 20px; text-align: center;
+          box-shadow: 0 2px 8px rgba(0,0,0,.07); border-top: 3px solid #1565C0; min-width: 110px; flex:1; }}
+  .kpi .val {{ font-size: 28px; font-weight: 700; color: #1565C0; }}
+  .kpi .lbl {{ font-size: 10px; color: #64748B; text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }}
   .card {{ background: white; border-radius: 10px; padding: 20px 24px; margin-bottom: 20px;
            box-shadow: 0 2px 8px rgba(0,0,0,.06); }}
-  .card h2 {{ font-size: 15px; color: #1565C0; border-bottom: 2px solid #E3F2FD; padding-bottom: 8px; margin-top: 0; }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
-  th {{ background: #1565C0; color: white; padding: 8px 10px; text-align: left; }}
-  td {{ padding: 7px 10px; border-bottom: 1px solid #E2E8F0; }}
+  .card h2 {{ font-size: 14px; color: #1565C0; border-bottom: 2px solid #E3F2FD;
+              padding-bottom: 8px; margin-top: 0; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 12px; }}
+  th {{ background: #1565C0; color: white; padding: 7px 10px; text-align: left; }}
+  td {{ padding: 6px 10px; border-bottom: 1px solid #E2E8F0; }}
   tr:nth-child(even) td {{ background: #F8FAFC; }}
   .field-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }}
-  .field strong {{ display: block; font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }}
+  .field strong {{ display: block; font-size: 10px; color: #64748B; text-transform: uppercase;
+                   letter-spacing: .4px; margin-bottom: 3px; }}
   .field span {{ font-size: 13px; }}
-  .footer {{ text-align: center; color: #94A3B8; font-size: 12px; margin-top: 32px; }}
+  .footer {{ text-align: center; color: #94A3B8; font-size: 11px; margin-top: 32px; padding-top: 16px;
+             border-top: 1px solid #E2E8F0; }}
+  @media print {{
+    body {{ background: white; padding: 0; }}
+    .card, .kpi {{ box-shadow: none; border: 1px solid #E2E8F0; }}
+    .hero {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  }}
 </style>
 </head>
 <body>
+
+<!-- CABEÇALHO -->
 <div class="hero">
   <h1>📊 Planejamento Estratégico — BK Engenharia e Tecnologia</h1>
-  <p>Gerado em {today} &nbsp;|&nbsp; Horizonte: 36 meses</p>
+  <p>Gerado em {today_str} &nbsp;|&nbsp; Horizonte: 36 meses</p>
 </div>
 
-<div class="okr-row">
-  <div class="okr"><div class="val">{len(okrs)}</div><div class="lbl">KPIs</div></div>
-  <div class="okr"><div class="val" style="color:{'#059669' if pct_geral>=90 else ('#D97706' if pct_geral>=70 else '#DC2626')}">{pct_geral:.1f}%</div><div class="lbl">Realização Geral</div></div>
-  <div class="okr"><div class="val">{len(actions)}</div><div class="lbl">Planos de Ação</div></div>
-  <div class="okr"><div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div></div>
-  <div class="okr"><div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div></div>
+<!-- CARDS GERAIS -->
+<div class="kpi-row">
+  <div class="kpi"><div class="val">{len(okrs)}</div><div class="lbl">KPIs</div></div>
+  <div class="kpi">
+    <div class="val" style="color:{cor_geral}">{pct_geral:.1f}%</div>
+    <div class="lbl">Realização Geral</div>
+  </div>
+  <div class="kpi"><div class="val">{total_prev:.0f}</div><div class="lbl">Total Planejado</div></div>
+  <div class="kpi"><div class="val" style="color:{cor_geral}">{total_real:.0f}</div><div class="lbl">Total Realizado</div></div>
+  <div class="kpi"><div class="val">{len(actions)}</div><div class="lbl">Planos de Ação</div></div>
+  <div class="kpi"><div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div></div>
+  <div class="kpi"><div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div></div>
 </div>
 
+<!-- NORTE ESTRATÉGICO -->
 <div class="card">
   <h2>🧭 Norte Estratégico</h2>
   <div class="field-grid">
@@ -683,15 +880,70 @@ def build_html_report(dados: dict) -> str:
     <div class="field"><strong>Diferenciais</strong><span>{strategic.get('diferenciais') or '—'}</span></div>
     <div class="field"><strong>Pilares</strong><span>{strategic.get('pilares') or '—'}</span></div>
   </div>
+  {f'<div style="margin-top:10px"><strong style="font-size:10px;color:#64748B;text-transform:uppercase">Objetivos Estratégicos</strong><p style="font-size:13px;margin:4px 0 0">{strategic.get("objetivos_estrategicos","")}</p></div>' if strategic.get('objetivos_estrategicos') else ''}
 </div>
 
-{'<div class="card"><h2>📈 KPIs — Saúde Geral</h2><table><thead><tr><th></th><th>Nome</th><th>Área</th><th>Unidade</th><th>% Realização</th><th>Meses Preenchidos</th></tr></thead><tbody>' + okr_rows + '</tbody></table></div>' if okrs else ''}
+{f'''<!-- DASHBOARD KPIs -->
+<div class="card">
+  <h2>📊 Dashboard de KPIs</h2>
+  <!-- Gráfico geral -->
+  {overview_html}
+  <!-- Tabela resumo -->
+  <h3 style="font-size:13px;color:#1565C0;margin:20px 0 8px">Resumo por KPI</h3>
+  <table>
+    <thead><tr>
+      <th></th><th>KPI</th><th>Área</th><th>Unidade</th>
+      <th>Total Planejado</th><th>Total Realizado</th>
+      <th>% Realização</th><th>Meses Preench.</th>
+    </tr></thead>
+    <tbody>{okr_summary_rows}</tbody>
+  </table>
+</div>
+<!-- GRÁFICOS INDIVIDUAIS POR KPI -->
+<div class="card">
+  <h2>📈 Análise Detalhada por KPI</h2>
+  {kpi_detail_blocks}
+</div>
+''' if okrs else ''}
 
-{'<div class="card"><h2>⚖️ Análise SWOT</h2><table><thead><tr><th>Tipo</th><th>Descrição</th><th>Prioridade</th></tr></thead><tbody>' + swot_rows + '</tbody></table></div>' if swot else ''}
+{f'''<!-- SWOT -->
+<div class="card">
+  <h2>⚖️ Análise SWOT</h2>
+  <table>
+    <thead><tr><th>Tipo</th><th>Descrição</th><th>Prioridade</th></tr></thead>
+    <tbody>{swot_rows}</tbody>
+  </table>
+</div>
+''' if swot else ''}
 
-{'<div class="card"><h2>✅ Planos de Ação</h2><table><thead><tr><th>Título</th><th>Área</th><th>Responsável</th><th>Vencimento</th><th>Status</th></tr></thead><tbody>' + action_rows + '</tbody></table></div>' if actions else ''}
+{f'''<!-- PLANOS DE AÇÃO -->
+<div class="card">
+  <h2>✅ Planos de Ação</h2>
+  <!-- Cards -->
+  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <div class="kpi" style="min-width:80px"><div class="val">{len(actions)}</div><div class="lbl">Total</div></div>
+    <div class="kpi" style="min-width:80px"><div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div></div>
+    <div class="kpi" style="min-width:80px"><div class="val" style="color:#D97706">{n_andamento}</div><div class="lbl">Em Andamento</div></div>
+    <div class="kpi" style="min-width:80px"><div class="val" style="color:#94A3B8">{n_pendente}</div><div class="lbl">Pendentes</div></div>
+    <div class="kpi" style="min-width:80px"><div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div></div>
+  </div>
+  <!-- Gráficos -->
+  {ac_charts_html}
+  <!-- Tabela -->
+  <h3 style="font-size:13px;color:#1565C0;margin:20px 0 8px">Lista Completa</h3>
+  <table>
+    <thead><tr>
+      <th>Título</th><th>KPI Vinculada</th><th>Área</th>
+      <th>Responsável</th><th>Vencimento</th><th>Prioridade</th><th>Status</th>
+    </tr></thead>
+    <tbody>{action_rows}</tbody>
+  </table>
+</div>
+''' if actions else ''}
 
-<div class="footer">BK Engenharia e Tecnologia &nbsp;|&nbsp; Planejamento Estratégico &nbsp;|&nbsp; {today}</div>
+<div class="footer">
+  BK Engenharia e Tecnologia &nbsp;|&nbsp; Planejamento Estratégico &nbsp;|&nbsp; {today_str}
+</div>
 </body></html>"""
     return html
 
