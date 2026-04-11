@@ -1184,62 +1184,194 @@ def relatorios(request):
     actions = dados.get("actions", [])
     swot = dados.get("swot", [])
 
+    # ── Contadores planos de ação ──────────────────────────────
     n_atrasados = sum(
         1 for a in actions
         if a.get("status") != "Concluído"
         and _safe_date(a.get("data_vencimento"))
         and _safe_date(a.get("data_vencimento")) < today
     )
-    n_concluidos = sum(1 for a in actions if a.get("status") == "Concluído")
+    n_concluidos  = sum(1 for a in actions if a.get("status") == "Concluído")
+    n_andamento   = sum(1 for a in actions if a.get("status") == "Em andamento")
+    n_pendente    = sum(1 for a in actions if a.get("status") == "Pendente")
+    n_total_ac    = len(actions)
 
-    saude = []
+    # ── Saúde + gráficos por KPI ──────────────────────────────
+    total_prev_geral = 0.0
+    total_real_geral = 0.0
+    saude      = []
+    kpi_charts = []
+
     for o in okrs:
-        o = _ensure_okr_meses(o)
-        tp = sum(float(m.get("previsto", 0)) for m in o["meses"])
+        o  = _ensure_okr_meses(o)
+        tp = sum(float(m.get("previsto",  0)) for m in o["meses"])
         tr = sum(float(m.get("realizado", 0)) for m in o["meses"])
-        pct = (tr / tp * 100) if tp > 0 else 0
+        total_prev_geral += tp
+        total_real_geral += tr
+        pct    = (tr / tp * 100) if tp > 0 else 0
         filled = sum(1 for m in o["meses"] if float(m.get("realizado", 0)) != 0)
         semaforo = "🟢" if pct >= 95 else ("🟡" if pct >= 70 else "🔴")
-        color = BK_GREEN if pct >= 95 else (BK_ORANGE if pct >= 70 else BK_RED)
+        color    = BK_GREEN if pct >= 95 else (BK_ORANGE if pct >= 70 else BK_RED)
+
         saude.append({
             "semaforo": semaforo,
-            "nome": o.get("nome"),
-            "area": o.get("area"),
-            "unidade": o.get("unidade"),
-            "pct": round(pct, 1),
-            "filled": filled,
-            "color": color,
+            "nome":     o.get("nome"),
+            "area":     o.get("area"),
+            "unidade":  o.get("unidade"),
+            "pct":      round(pct, 1),
+            "tp":       round(tp, 2),
+            "tr":       round(tr, 2),
+            "filled":   filled,
+            "color":    color,
         })
 
+        # Rótulos de meses reais baseados em 'inicio'
+        labels = _month_labels_for_okr(o)
+        prevs  = [float(m.get("previsto",  0)) for m in o["meses"]]
+        reals  = [float(m.get("realizado", 0)) for m in o["meses"]]
+
+        # Gráfico de barras Planejado vs Realizado
+        fig_bar = go.Figure(data=[
+            go.Bar(name="Planejado", x=labels, y=prevs,
+                   marker_color=BK_BLUE_LIGHT, opacity=0.85),
+            go.Bar(name="Realizado", x=labels, y=reals,
+                   marker_color=BK_GREEN),
+        ])
+        fig_bar.update_layout(
+            barmode="group", height=240,
+            margin=dict(l=40, r=10, t=16, b=50),
+            legend=dict(orientation="h", y=1.08),
+            paper_bgcolor="white", plot_bgcolor="white",
+            xaxis=dict(tickangle=-45, tickfont=dict(size=9)),
+        )
+
+        # Gauge % de realização
+        gauge_color = BK_GREEN if pct >= 95 else (BK_ORANGE if pct >= 70 else BK_RED)
+        fig_gauge = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=round(pct, 1),
+            number={"suffix": "%", "font": {"size": 22, "color": gauge_color}},
+            gauge={
+                "axis": {"range": [0, 120], "tickfont": {"size": 9}},
+                "bar":  {"color": gauge_color},
+                "steps": [
+                    {"range": [0,  70], "color": "#FEE2E2"},
+                    {"range": [70, 95], "color": "#FEF3C7"},
+                    {"range": [95,120], "color": "#D1FAE5"},
+                ],
+                "threshold": {"line": {"color": "#1565C0", "width": 2},
+                              "thickness": 0.75, "value": 100},
+            },
+        ))
+        fig_gauge.update_layout(
+            height=180,
+            margin=dict(l=10, r=10, t=10, b=10),
+            paper_bgcolor="white",
+        )
+
+        kpi_charts.append({
+            "nome":      o.get("nome"),
+            "area":      o.get("area"),
+            "unidade":   o.get("unidade"),
+            "tp":        round(tp, 2),
+            "tr":        round(tr, 2),
+            "pct":       round(pct, 1),
+            "semaforo":  semaforo,
+            "color":     color,
+            "fig_bar":   fig_bar.to_json(),
+            "fig_gauge": fig_gauge.to_json(),
+        })
+
+    pct_geral = (total_real_geral / total_prev_geral * 100) if total_prev_geral > 0 else 0
+
+    # ── Gráficos planos de ação ───────────────────────────────
+    by_status = {}
+    by_area   = {}
+    for a in actions:
+        s = a.get("status", "Pendente")
+        r = a.get("area", "—")
+        by_status[s] = by_status.get(s, 0) + 1
+        by_area[r]   = by_area.get(r,   0) + 1
+
+    fig_ac_status_json = ""
+    if by_status:
+        sc = [STATUS_COLORS.get(k, BK_GRAY) for k in by_status]
+        fig_ac = go.Figure(go.Pie(
+            labels=list(by_status.keys()),
+            values=list(by_status.values()),
+            marker_colors=sc,
+            hole=0.4,
+            textinfo="label+percent",
+            textfont_size=11,
+        ))
+        fig_ac.update_layout(
+            height=260, margin=dict(l=10, r=10, t=10, b=10),
+            paper_bgcolor="white",
+            showlegend=False,
+        )
+        fig_ac_status_json = fig_ac.to_json()
+
+    fig_ac_area_json = ""
+    if by_area:
+        sorted_areas = sorted(by_area.items(), key=lambda x: x[1], reverse=True)
+        fig_area = go.Figure(go.Bar(
+            x=[i[0] for i in sorted_areas],
+            y=[i[1] for i in sorted_areas],
+            marker_color=BK_BLUE,
+            text=[i[1] for i in sorted_areas],
+            textposition="outside",
+        ))
+        fig_area.update_layout(
+            height=260, margin=dict(l=10, r=10, t=16, b=60),
+            paper_bgcolor="white", plot_bgcolor="white",
+            xaxis=dict(tickangle=-30, tickfont=dict(size=10)),
+            yaxis=dict(showgrid=True, gridcolor="#E2E8F0"),
+        )
+        fig_ac_area_json = fig_area.to_json()
+
+    # ── Recomendações ─────────────────────────────────────────
     recs = []
-    threats = [s for s in swot if s.get("tipo") == "Ameaça" and s.get("prioridade") == "Alta"]
-    opps = [s for s in swot if s.get("tipo") == "Oportunidade" and s.get("prioridade") == "Alta"]
-    weaknesses = [s for s in swot if s.get("tipo") == "Fraqueza" and s.get("prioridade") == "Alta"]
+    threats   = [s for s in swot if s.get("tipo") == "Ameaça"       and s.get("prioridade") == "Alta"]
+    opps      = [s for s in swot if s.get("tipo") == "Oportunidade"  and s.get("prioridade") == "Alta"]
+    weaknesses= [s for s in swot if s.get("tipo") == "Fraqueza"      and s.get("prioridade") == "Alta"]
 
     if threats:
         recs.append(f"🔴 {len(threats)} Ameaça(s) Alta — crie planos de mitigação com responsável e prazo.")
     if opps:
-        recs.append(f"🔵 {len(opps)} Oportunidade(s) Alta — transforme em 1–2 OKRs por pilar estratégico.")
+        recs.append(f"🔵 {len(opps)} Oportunidade(s) Alta — transforme em 1–2 KPIs por pilar estratégico.")
     if weaknesses:
         recs.append(f"🟡 {len(weaknesses)} Fraqueza(s) Alta — endereçar com planos de ação de curto prazo.")
     if n_atrasados:
         recs.append(f"⚠️ {n_atrasados} plano(s) atrasado(s) — priorize replanejamento: escopo, capacidade, nova data.")
     if okrs:
-        recs.append("📅 Estabeleça revisão mensal do realizado e revisão trimestral dos OKRs e prioridades.")
+        recs.append("📅 Estabeleça revisão mensal do realizado e revisão trimestral dos KPIs e prioridades.")
 
     low_fill = [o["nome"] for o in okrs if sum(1 for m in _ensure_okr_meses(o)["meses"] if m.get("realizado", 0) != 0) < 3]
     if low_fill:
         recs.append(f"📊 KPIs com pouco histórico: {', '.join(low_fill[:3])} — preencha o realizado mensalmente.")
     if not recs:
-        recs.append("✅ Preencha Visão/Missão, SWOT e OKRs para gerar recomendações automáticas.")
+        recs.append("✅ Preencha Visão/Missão, SWOT e KPIs para gerar recomendações automáticas.")
 
     return render(request, "planejamento/relatorios.html", {
-        "dados": dados,
-        "saude": saude,
-        "_saude": saude,
-        "recs": recs,
-        "n_concluidos": n_concluidos,
-        "n_atrasados": n_atrasados,
+        "dados":               dados,
+        "saude":               saude,
+        "recs":                recs,
+        # totais gerais KPI
+        "total_prev_geral":    round(total_prev_geral, 2),
+        "total_real_geral":    round(total_real_geral, 2),
+        "pct_geral":           round(pct_geral, 1),
+        # gráficos por KPI
+        "kpi_charts":          kpi_charts,
+        # planos de ação
+        "actions":             actions,
+        "n_total_ac":          n_total_ac,
+        "n_concluidos":        n_concluidos,
+        "n_andamento":         n_andamento,
+        "n_pendente":          n_pendente,
+        "n_atrasados":         n_atrasados,
+        "fig_ac_status_json":  fig_ac_status_json,
+        "fig_ac_area_json":    fig_ac_area_json,
+        "today_str":           today.isoformat(),
     })
 
 
