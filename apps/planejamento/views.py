@@ -607,30 +607,48 @@ def build_html_report(dados: dict) -> str:
     )
     cor_geral = "#059669" if pct_geral >= 95 else ("#D97706" if pct_geral >= 70 else "#DC2626")
 
-    # ── Gráfico Overview (somatório mensal prev vs real) ───────
+    # ── Gráfico Overview — igual ao web view (por KPI, não por mês) ──
     overview_html = ""
     if okrs:
-        all_prev = [0.0] * 36
-        all_real = [0.0] * 36
+        ov_names, ov_prevs, ov_reals, ov_pcts = [], [], [], []
         for o in okrs:
-            o = _ensure_okr_meses(o)
-            for i, m in enumerate(o["meses"][:36]):
-                all_prev[i] += float(m.get("previsto",  0))
-                all_real[i] += float(m.get("realizado", 0))
-        month_labels = [f"M{i+1:02d}" for i in range(36)]
-        fig_ov = go.Figure(data=[
-            go.Bar(name="Planejado", x=month_labels, y=all_prev,
-                   marker_color=BK_BLUE_LIGHT, opacity=0.85),
-            go.Bar(name="Realizado", x=month_labels, y=all_real,
-                   marker_color=BK_GREEN),
-        ])
+            o2 = _ensure_okr_meses(o)
+            tp = sum(float(m.get("previsto",  0)) for m in o2["meses"])
+            tr = sum(float(m.get("realizado", 0)) for m in o2["meses"])
+            pct = (tr / tp * 100) if tp > 0 else 0
+            ov_names.append(o2.get("nome", "")[:28])
+            ov_prevs.append(tp)
+            ov_reals.append(tr)
+            ov_pcts.append(round(pct, 1))
+
+        fig_ov = go.Figure()
+        fig_ov.add_trace(go.Bar(
+            name="Planejado", x=ov_names, y=ov_prevs,
+            marker_color=BK_BLUE_LIGHT, opacity=0.75,
+        ))
+        fig_ov.add_trace(go.Bar(
+            name="Realizado", x=ov_names, y=ov_reals,
+            marker_color=BK_GREEN,
+        ))
+        fig_ov.add_trace(go.Scatter(
+            name="% Realização", x=ov_names, y=ov_pcts,
+            mode="markers+text", yaxis="y2",
+            marker=dict(size=10, color=BK_ORANGE),
+            text=[f"{p:.0f}%" for p in ov_pcts],
+            textposition="top center",
+            textfont=dict(size=9),
+        ))
         fig_ov.update_layout(
-            barmode="group", height=300,
-            margin=dict(l=50, r=20, t=30, b=60),
-            legend=dict(orientation="h", y=1.08),
-            paper_bgcolor="white", plot_bgcolor="white",
+            barmode="group", height=420,
+            yaxis2=dict(overlaying="y", side="right",
+                        title="% Realização", range=[0, 160]),
+            paper_bgcolor="white", plot_bgcolor="#F8FAFC",
+            margin=dict(l=50, r=60, t=50, b=130),
+            legend=dict(orientation="h", y=1.05),
+            font=dict(family="Segoe UI"),
+            title=dict(text="Visão Geral KPIs — Planejado vs Realizado",
+                       font=dict(size=14, color="#1565C0")),
             xaxis=dict(tickangle=-45, tickfont=dict(size=9)),
-            title=dict(text="Planejado vs Realizado — Todos os KPIs (mensal)", font=dict(size=13)),
         )
         overview_html = fig_ov.to_html(full_html=False, include_plotlyjs=False)
 
@@ -916,30 +934,45 @@ def build_html_report(dados: dict) -> str:
 </div>
 ''' if swot else ''}
 
-{f'''<!-- PLANOS DE AÇÃO -->
+<!-- PLANOS DE AÇÃO — CARDS -->
 <div class="card">
-  <h2>✅ Planos de Ação</h2>
-  <!-- Cards -->
-  <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-    <div class="kpi" style="min-width:80px"><div class="val">{len(actions)}</div><div class="lbl">Total</div></div>
-    <div class="kpi" style="min-width:80px"><div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div></div>
-    <div class="kpi" style="min-width:80px"><div class="val" style="color:#D97706">{n_andamento}</div><div class="lbl">Em Andamento</div></div>
-    <div class="kpi" style="min-width:80px"><div class="val" style="color:#94A3B8">{n_pendente}</div><div class="lbl">Pendentes</div></div>
-    <div class="kpi" style="min-width:80px"><div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div></div>
+  <h2>✅ Planos de Ação — Resumo</h2>
+  <div style="display:flex;gap:14px;margin-bottom:0;flex-wrap:wrap">
+    <div class="kpi" style="min-width:90px">
+      <div class="val">{len(actions)}</div><div class="lbl">Total</div>
+    </div>
+    <div class="kpi" style="min-width:90px;border-top-color:#059669">
+      <div class="val" style="color:#059669">{n_concluidos}</div><div class="lbl">Concluídos</div>
+    </div>
+    <div class="kpi" style="min-width:90px;border-top-color:#D97706">
+      <div class="val" style="color:#D97706">{n_andamento}</div><div class="lbl">Em Andamento</div>
+    </div>
+    <div class="kpi" style="min-width:90px;border-top-color:#94A3B8">
+      <div class="val" style="color:#94A3B8">{n_pendente}</div><div class="lbl">Pendentes</div>
+    </div>
+    <div class="kpi" style="min-width:90px;border-top-color:#DC2626">
+      <div class="val" style="color:#DC2626">{n_atrasados}</div><div class="lbl">Atrasados</div>
+    </div>
   </div>
-  <!-- Gráficos -->
-  {ac_charts_html}
-  <!-- Tabela -->
-  <h3 style="font-size:13px;color:#1565C0;margin:20px 0 8px">Lista Completa</h3>
-  <table>
+</div>
+
+<!-- PLANOS DE AÇÃO — DASHBOARD -->
+<div class="card">
+  <h2>📊 Dashboard — Planos de Ação</h2>
+  {ac_charts_html if ac_charts_html else '<p style="color:#94A3B8;font-size:13px">Nenhum plano de ação cadastrado.</p>'}
+</div>
+
+<!-- PLANOS DE AÇÃO — TABELA -->
+<div class="card">
+  <h2>📋 Lista Completa de Planos de Ação</h2>
+  {f'''<table>
     <thead><tr>
-      <th>Título</th><th>KPI Vinculada</th><th>Área</th>
+      <th>Título / Descrição</th><th>KPI Vinculada</th><th>Área</th>
       <th>Responsável</th><th>Vencimento</th><th>Prioridade</th><th>Status</th>
     </tr></thead>
     <tbody>{action_rows}</tbody>
-  </table>
+  </table>''' if action_rows else '<p style="color:#94A3B8;font-size:13px">Nenhum plano de ação cadastrado.</p>'}
 </div>
-''' if actions else ''}
 
 <div class="footer">
   BK Engenharia e Tecnologia &nbsp;|&nbsp; Planejamento Estratégico &nbsp;|&nbsp; {today_str}
