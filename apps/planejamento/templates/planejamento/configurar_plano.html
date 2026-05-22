@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Configurar Plano{% endblock %}
+{% block page_title %}Administração{% endblock %}
+{% block page_sub %}Configurar Plano do Sistema{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;margin:0 auto">
+
+  <!-- Plano atual -->
+  <div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:20px">
+    <div style="font-size:13px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:16px">
+      📋 Plano Atual
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="font-size:48px">{% if plano_atual == 'pago' %}🚀{% else %}🌱{% endif %}</div>
+      <div>
+        <div style="font-size:22px;font-weight:800;color:#1E3A5F">
+          {% if plano_atual == 'pago' %}Plano Pago{% else %}Plano Free{% endif %}
+        </div>
+        <div style="font-size:13px;color:#64748B;margin-top:2px">
+          {% if plano_atual == 'pago' %}Todos os recursos desbloqueados{% else %}Recursos básicos — 1 KPI, sem plano de ação{% endif %}
+        </div>
+      </div>
+      <div style="margin-left:auto">
+        <span style="display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;
+          {% if plano_atual == 'pago' %}background:#D1FAE5;color:#065F46{% else %}background:#FEF3C7;color:#92400E{% endif %}">
+          {% if plano_atual == 'pago' %}✅ ATIVO{% else %}🔒 FREE{% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparativo -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+    <!-- Free -->
+    <div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:2px solid {% if plano_atual == 'free' %}#1565C0{% else %}#E2E8F0{% endif %}">
+      <div style="font-size:11px;font-weight:700;color:#92400E;background:#FEF3C7;padding:3px 10px;border-radius:12px;display:inline-block;margin-bottom:12px">FREE</div>
+      <div style="font-size:24px;font-weight:800;color:#1E3A5F;margin-bottom:4px">R$ 0<span style="font-size:13px;font-weight:400">/mês</span></div>
+      <div style="font-size:12px;color:#94A3B8;margin-bottom:16px">Sem implantação</div>
+      <ul style="font-size:13px;color:#475569;padding-left:0;list-style:none;margin:0;line-height:2.2">
+        <li>✅ 1 KPI</li>
+        <li>✅ SWOT (apenas visualização)</li>
+        <li>✅ Norte Estratégico</li>
+        <li>❌ Planos de Ação</li>
+        <li>❌ Relatório Word</li>
+        <li>❌ Excel / JSON</li>
+        <li>❌ Múltiplos usuários</li>
+      </ul>
+      {% if plano_atual != 'free' %}
+      <form method="post" style="margin-top:16px">{% csrf_token %}
+        <input type="hidden" name="plano" value="free">
+        <button type="submit" class="btn" style="width:100%;background:#F1F5F9;color:#475569;border:1px solid #E2E8F0"
+                onclick="return confirm('Tem certeza? Recursos serão bloqueados.')">
+          Mudar para Free
+        </button>
+      </form>
+      {% else %}
+      <div style="margin-top:16px;text-align:center;font-size:12px;color:#1565C0;font-weight:600">← PLANO ATUAL</div>
+      {% endif %}
+    </div>
+
+    <!-- Pago -->
+    <div style="background:linear-gradient(135deg,#EFF6FF,#F0FDF4);border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:2px solid {% if plano_atual == 'pago' %}#1565C0{% else %}#E2E8F0{% endif %}">
+      <div style="font-size:11px;font-weight:700;color:#065F46;background:#D1FAE5;padding:3px 10px;border-radius:12px;display:inline-block;margin-bottom:12px">PAGO</div>
+      <div style="font-size:24px;font-weight:800;color:#1E3A5F;margin-bottom:4px">R$ 29,90<span style="font-size:13px;font-weight:400">/mês</span></div>
+      <div style="font-size:12px;color:#94A3B8;margin-bottom:16px">+ R$ 500 implantação única</div>
+      <ul style="font-size:13px;color:#475569;padding-left:0;list-style:none;margin:0;line-height:2.2">
+        <li>✅ KPIs ilimitadas</li>
+        <li>✅ SWOT completo</li>
+        <li>✅ Norte Estratégico</li>
+        <li>✅ Planos de Ação</li>
+        <li>✅ Relatório Word com gráficos</li>
+        <li>✅ Excel / JSON</li>
+        <li>✅ Usuários ilimitados</li>
+      </ul>
+      {% if plano_atual != 'pago' %}
+      <form method="post" style="margin-top:16px">{% csrf_token %}
+        <input type="hidden" name="plano" value="pago">
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:10px">
+          🚀 Ativar Plano Pago
+        </button>
+      </form>
+      {% else %}
+      <div style="margin-top:16px;text-align:center;font-size:12px;color:#065F46;font-weight:600">✅ PLANO ATUAL</div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px 16px;font-size:12px;color:#92400E">
+    ⚠️ Esta tela é apenas para demonstração/teste. Em produção, a troca de plano deve ser feita após confirmação de pagamento.
+  </div>
+
+</div>
+{% endblock %}

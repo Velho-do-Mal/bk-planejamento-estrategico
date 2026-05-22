@@ -3,16 +3,20 @@ from django.db import models
 
 
 class Usuario(AbstractUser):
-    """Usuário customizado da aplicação."""
-    groups = models.ManyToManyField(
-        'auth.Group', blank=True, related_name='usuarios'
+    empresa = models.ForeignKey(
+        'planejamento.Empresa',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='usuarios',
+        verbose_name='Empresa',
     )
-    user_permissions = models.ManyToManyField(
-        'auth.Permission', blank=True, related_name='usuarios'
-    )
+    groups = models.ManyToManyField('auth.Group', blank=True, related_name='usuarios')
+    user_permissions = models.ManyToManyField('auth.Permission', blank=True, related_name='usuarios')
 
     class Meta:
-        verbose_name = 'Usuário'
+        verbose_name        = 'Usuário'
         verbose_name_plural = 'Usuários'
 
-# ATENÇÃO: AUTH_USER_MODEL deve estar em bk_plan/settings.py — não aqui.
+    def __str__(self):
+        empresa = self.empresa.nome if self.empresa else '—'
+        return f'{self.username} ({empresa})'
