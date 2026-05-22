@@ -44,14 +44,6 @@
     Edite diretamente. Adicione linhas. Marque <strong>Excluir</strong> para remover.
     <strong style="color:#E53935">⚠️ Sempre clique em "Aplicar KPIs" antes de preencher Planejado/Realizado.</strong>
   </p>
-  {% if plano_info.plano == 'free' %}
-  <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-    <span>🔒 <strong>Plano Free:</strong> máximo de 1 KPI. Adicione mais fazendo upgrade.</span>
-    {% if user.is_superuser %}
-    <a href="{% url 'planejamento:configurar_plano' %}" style="background:#1565C0;color:white;padding:4px 12px;border-radius:6px;text-decoration:none;font-size:11px;font-weight:600;white-space:nowrap;margin-left:12px">🚀 Upgrade</a>
-    {% endif %}
-  </div>
-  {% endif %}
 
   <form method="post" id="form-meta">
     {% csrf_token %}

@@ -271,26 +271,22 @@
   <div class="section-title">📥 Exportar Relatório</div>
   <div class="export-grid">
     <!-- WORD — destaque principal -->
-    <a href="{% url 'planejamento:export_word' %}" class="export-btn word-btn" style="{% if not plano_info.limites.word_export %}opacity:.5;pointer-events:none;position:relative{% endif %}">
+    <a href="{% url 'planejamento:export_word' %}" class="export-btn word-btn">
       <span class="icon">📝</span>
       <strong>Relatório Word</strong>
-      <span style="font-size:11px;color:#2563EB;display:block;margin-top:3px">
-        {% if plano_info.limites.word_export %}Com gráficos e plano de ação completo{% else %}🔒 Plano Pago{% endif %}
-      </span>
+      <span style="font-size:11px;color:#2563EB;display:block;margin-top:3px">Com gráficos e plano de ação completo</span>
     </a>
     <a href="{% url 'planejamento:export_html' %}" class="export-btn">
       <span class="icon">🌐</span>Relatório HTML
     </a>
-    <a href="{% url 'planejamento:export_excel' %}" class="export-btn" style="{% if not plano_info.limites.excel_export %}opacity:.5;pointer-events:none{% endif %}">
+    <a href="{% url 'planejamento:export_excel' %}" class="export-btn">
       <span class="icon">📊</span>Excel Completo
-      {% if not plano_info.limites.excel_export %}<span style="display:block;font-size:10px;color:#E53935">🔒 Plano Pago</span>{% endif %}
     </a>
     <a href="{% url 'planejamento:export_zip' %}" class="export-btn">
       <span class="icon">🗜️</span>CSVs ZIP
     </a>
-    <a href="{% url 'planejamento:export_json' %}" class="export-btn" style="{% if not plano_info.limites.json_export %}opacity:.5;pointer-events:none{% endif %}">
+    <a href="{% url 'planejamento:export_json' %}" class="export-btn">
       <span class="icon">⬇️</span>Exportar JSON
-      {% if not plano_info.limites.json_export %}<span style="display:block;font-size:10px;color:#E53935">🔒 Plano Pago</span>{% endif %}
     </a>
   </div>
 </div>
