@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Usuários do Sistema{% endblock %}
+{% block page_title %}Administração{% endblock %}
+{% block page_sub %}Gerenciamento de Usuários do Sistema{% endblock %}
+
+{% block extra_css %}
+<style>
+.section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:14px}
+.user-table{width:100%;border-collapse:collapse;font-size:13px}
+.user-table th{background:#1565C0;color:white;padding:9px 12px;text-align:left;white-space:nowrap}
+.user-table td{padding:9px 12px;border-bottom:1px solid #E2E8F0;vertical-align:middle}
+.user-table tr:nth-child(even) td{background:#F8FAFC}
+.badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-ativo{background:#D1FAE5;color:#065F46}
+.badge-inativo{background:#FEE2E2;color:#991B1B}
+.badge-admin{background:#DBEAFE;color:#1E3A8A}
+.badge-staff{background:#FEF3C7;color:#92400E}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:12px;padding:28px;width:520px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-title{font-size:16px;font-weight:700;color:#1E3A5F;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center}
+.btn-close{background:none;border:none;cursor:pointer;font-size:20px;color:#94A3B8;line-height:1}
+.btn-close:hover{color:#1E3A5F}
+.pass-modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1001;align-items:center;justify-content:center}
+.pass-modal-overlay.open{display:flex}
+.user-avatar-lg{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1565C0,#00897B);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:15px;flex-shrink:0}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════ LISTA DE USUÁRIOS ══════════════════════════════ -->
+<div class="section-card">
+  <div class="section-title">
+    👥 Usuários cadastrados
+    <button onclick="document.getElementById('modal-novo').classList.add('open')"
+            class="btn btn-primary" style="float:right;font-size:12px;padding:6px 14px">
+      ➕ Novo Usuário
+    </button>
+  </div>
+
+  {% if usuarios %}
+  <div style="overflow-x:auto">
+    <table class="user-table">
+      <thead>
+        <tr>
+          <th style="width:42px"></th>
+          <th>Usuário</th>
+          <th>Nome Completo</th>
+          <th>E-mail</th>
+          <th>Perfil</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td style="text-align:center">
+            <div class="user-avatar-lg">{{ u.username|first|upper }}</div>
+          </td>
+          <td><strong>{{ u.username }}</strong></td>
+          <td>{{ u.get_full_name|default:"—" }}</td>
+          <td>{{ u.email|default:"—" }}</td>
+          <td>
+            {% if u.is_superuser %}
+              <span class="badge badge-admin">🔑 Admin</span>
+            {% elif u.is_staff %}
+              <span class="badge badge-staff">🛠️ Staff</span>
+            {% else %}
+              <span class="badge" style="background:#F1F5F9;color:#475569">👤 Usuário</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge badge-ativo">✅ Ativo</span>
+            {% else %}
+              <span class="badge badge-inativo">🚫 Inativo</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <!-- Ativar / Desativar -->
+              {% if u != request.user %}
+              <form method="post" style="display:inline">{% csrf_token %}
+                <input type="hidden" name="action" value="toggle_active">
+                <input type="hidden" name="user_id" value="{{ u.pk }}">
+                <button type="submit" class="btn"
+                        style="font-size:11px;padding:3px 10px;{% if u.is_active %}background:#FEF3C7;color:#92400E;border:1px solid #FDE68A{% else %}background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0{% endif %}"
+                        onclick="return confirm('{% if u.is_active %}Desativar{% else %}Ativar{% endif %} o usuário {{ u.username }}?')">
+                  {% if u.is_active %}🚫 Desativar{% else %}✅ Ativar{% endif %}
+                </button>
+              </form>
+              {% endif %}
+
+              <!-- Alterar senha -->
+              <button type="button" class="btn"
+                      style="font-size:11px;padding:3px 10px;background:#EFF6FF;color:#1565C0;border:1px solid #BFDBFE"
+                      onclick="openPassModal('{{ u.pk }}','{{ u.username }}')">
+                🔑 Senha
+              </button>
+
+              <!-- Excluir -->
+              {% if u != request.user %}
+              <form method="post" style="display:inline">{% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="user_id" value="{{ u.pk }}">
+                <button type="submit" class="btn"
+                        style="font-size:11px;padding:3px 10px;background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5"
+                        onclick="return confirm('Excluir permanentemente o usuário {{ u.username }}? Esta ação não pode ser desfeita.')">
+                  🗑️ Excluir
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p style="color:#94A3B8;font-size:13px">Nenhum usuário cadastrado.</p>
+  {% endif %}
+</div>
+
+<!-- ══════════════ INFORMAÇÕES ════════════════════════════════════ -->
+<div class="section-card">
+  <div class="section-title">ℹ️ Perfis de Acesso</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:13px">
+    <div style="background:#DBEAFE;border-radius:8px;padding:12px">
+      <strong style="color:#1E3A8A">🔑 Administrador</strong>
+      <p style="margin:6px 0 0;color:#1E40AF;font-size:12px">Acesso total ao sistema, incluindo gerenciamento de usuários.</p>
+    </div>
+    <div style="background:#FEF3C7;border-radius:8px;padding:12px">
+      <strong style="color:#92400E">🛠️ Staff</strong>
+      <p style="margin:6px 0 0;color:#92400E;font-size:12px">Acesso ao sistema e painel admin do Django. Sem gerenciamento de usuários.</p>
+    </div>
+    <div style="background:#F1F5F9;border-radius:8px;padding:12px">
+      <strong style="color:#475569">👤 Usuário</strong>
+      <p style="margin:6px 0 0;color:#475569;font-size:12px">Acesso padrão ao planejamento. Leitura e edição de dados.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MODAL NOVO USUÁRIO ═════════════════════════════ -->
+<div class="modal-overlay" id="modal-novo" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal-box">
+    <div class="modal-title">
+      ➕ Cadastrar Novo Usuário
+      <button class="btn-close" onclick="document.getElementById('modal-novo').classList.remove('open')">✕</button>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="create">
+
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Usuário (login) *</label>
+          <input type="text" name="username" class="form-control" required placeholder="ex: joao.silva"
+                 pattern="[a-zA-Z0-9._@+-]+" title="Apenas letras, números e . _ @ + -">
+        </div>
+        <div>
+          <label class="form-label">E-mail</label>
+          <input type="email" name="email" class="form-control" placeholder="email@empresa.com">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Nome</label>
+          <input type="text" name="first_name" class="form-control" placeholder="João">
+        </div>
+        <div>
+          <label class="form-label">Sobrenome</label>
+          <input type="text" name="last_name" class="form-control" placeholder="Silva">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Senha *</label>
+          <input type="password" name="password" class="form-control" required minlength="8"
+                 placeholder="Mín. 8 caracteres">
+        </div>
+        <div>
+          <label class="form-label">Confirmar Senha *</label>
+          <input type="password" name="password2" class="form-control" required minlength="8"
+                 placeholder="Repita a senha">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:24px;margin-bottom:18px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" name="is_staff" style="width:16px;height:16px">
+          <span>🛠️ Staff (acesso ao admin)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" name="is_superuser" style="width:16px;height:16px">
+          <span>🔑 Administrador (acesso total)</span>
+        </label>
+      </div>
+
+      <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:10px;font-size:12px;color:#92400E;margin-bottom:16px">
+        ⚠️ Atenção: Administradores têm acesso total, incluindo gerenciamento de outros usuários.
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" class="btn"
+                style="background:#F1F5F9;color:#475569;border:1px solid #E2E8F0"
+                onclick="document.getElementById('modal-novo').classList.remove('open')">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">✅ Criar Usuário</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════ MODAL ALTERAR SENHA ════════════════════════════ -->
+<div class="pass-modal-overlay" id="modal-senha" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal-box">
+    <div class="modal-title">
+      🔑 Alterar Senha — <span id="pass-username"></span>
+      <button class="btn-close" onclick="document.getElementById('modal-senha').classList.remove('open')">✕</button>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="change_password">
+      <input type="hidden" name="user_id" id="pass-user-id">
+
+      <div style="margin-bottom:12px">
+        <label class="form-label">Nova Senha *</label>
+        <input type="password" name="new_password" class="form-control" required minlength="8"
+               placeholder="Mínimo 8 caracteres">
+      </div>
+      <div style="margin-bottom:18px">
+        <label class="form-label">Confirmar Nova Senha *</label>
+        <input type="password" name="new_password2" class="form-control" required minlength="8"
+               placeholder="Repita a nova senha">
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" class="btn"
+                style="background:#F1F5F9;color:#475569;border:1px solid #E2E8F0"
+                onclick="document.getElementById('modal-senha').classList.remove('open')">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">🔑 Alterar Senha</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openPassModal(userId, username) {
+  document.getElementById('pass-user-id').value  = userId;
+  document.getElementById('pass-username').textContent = username;
+  document.getElementById('modal-senha').classList.add('open');
+}
+// Fechar modal com ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open, .pass-modal-overlay.open')
+      .forEach(function(m){ m.classList.remove('open'); });
+  }
+});
+</script>
+{% endblock %}

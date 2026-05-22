@@ -7,15 +7,15 @@
 <style>
 .section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
 .section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:14px}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}
 .editable-table{width:100%;border-collapse:collapse;font-size:13px}
-.editable-table th{background:#1565C0;color:white;padding:8px 10px}
+.editable-table th{background:#1565C0;color:white;padding:8px 10px;text-align:left}
 .editable-table td{padding:0;border-bottom:1px solid #E2E8F0}
 .editable-table td input,.editable-table td select{width:100%;padding:7px 10px;border:none;background:transparent;font-size:13px;font-family:inherit}
 .editable-table td input:focus,.editable-table td select:focus{background:#EFF6FF;outline:none}
 .editable-table tr:nth-child(even) td{background:#F8FAFC}
-.btn-danger{background:#EF4444;color:white;border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:12px}
+.editable-table tr:nth-child(even) td input,.editable-table tr:nth-child(even) td select{background:transparent}
+.cb-excluir{cursor:pointer;width:18px;height:18px;accent-color:#EF4444}
 </style>
 {% endblock %}
 
@@ -47,43 +47,54 @@
 {% if dados.areas %}
 <div class="section-card">
   <div class="section-title">🏢 Tabela de Áreas (editável)</div>
+  <p style="font-size:12px;color:#64748B;margin-bottom:8px">
+    Edite diretamente. Marque <strong style="color:#EF4444">Excluir</strong> na linha desejada e clique em 💾 Salvar.
+  </p>
+
+  <!-- CORREÇÃO: formulário único, sem formulários aninhados -->
   <form method="post" id="form-areas">{% csrf_token %}
     <input type="hidden" name="action" value="save_table">
     <input type="hidden" name="rows_json" id="rows-json">
     <div style="overflow-x:auto">
-    <table class="editable-table" id="areas-table">
-      <thead><tr><th>Área</th><th>Responsável</th><th>E-mail</th><th>Observações</th><th>Ação</th></tr></thead>
-      <tbody>
-      {% for a in dados.areas %}
-      <tr>
-        <td><input type="text" value="{{ a.area }}" data-field="area"></td>
-        <td>
-          {% if dados.partners %}
-          <select data-field="responsavel">
-            {% for p in dados.partners %}
-            <option {% if p.nome == a.responsavel %}selected{% endif %}>{{ p.nome }}</option>
-            {% endfor %}
-          </select>
-          {% else %}
-          <input type="text" value="{{ a.responsavel }}" data-field="responsavel">
-          {% endif %}
-        </td>
-        <td><input type="text" value="{{ a.email }}" data-field="email"></td>
-        <td><input type="text" value="{{ a.observacoes }}" data-field="observacoes"></td>
-        <td style="padding:6px 10px">
-          <form method="post" style="display:inline">{% csrf_token %}
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="idx" value="{{ forloop.counter0 }}">
-            <button type="submit" class="btn-danger" onclick="return confirm('Excluir?')">🗑️</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+      <table class="editable-table" id="areas-table">
+        <thead>
+          <tr>
+            <th>Área</th>
+            <th>Responsável</th>
+            <th>E-mail</th>
+            <th>Observações</th>
+            <th style="text-align:center;width:70px;color:#FCA5A5">Excluir</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in dados.areas %}
+          <tr>
+            <td><input type="text" value="{{ a.area }}" data-field="area"></td>
+            <td>
+              {% if dados.partners %}
+              <select data-field="responsavel">
+                {% for p in dados.partners %}
+                <option {% if p.nome == a.responsavel %}selected{% endif %}>{{ p.nome }}</option>
+                {% endfor %}
+                <option value="" {% if not a.responsavel %}selected{% endif %}>(outro)</option>
+              </select>
+              {% else %}
+              <input type="text" value="{{ a.responsavel }}" data-field="responsavel">
+              {% endif %}
+            </td>
+            <td><input type="text" value="{{ a.email }}" data-field="email"></td>
+            <td><input type="text" value="{{ a.observacoes }}" data-field="observacoes"></td>
+            <td style="padding:8px;text-align:center">
+              <input type="checkbox" class="cb-excluir" data-field="excluir" title="Marcar para excluir">
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
     <br>
     <button type="button" class="btn btn-primary" onclick="saveTable()">💾 Salvar Áreas</button>
+    <span style="font-size:12px;color:#94A3B8;margin-left:10px">Linhas marcadas serão removidas ao salvar.</span>
   </form>
 </div>
 {% else %}
@@ -100,7 +111,11 @@ function saveTable() {
   document.querySelectorAll('#areas-table tbody tr').forEach(function(tr) {
     var row = {};
     tr.querySelectorAll('[data-field]').forEach(function(el) {
-      row[el.dataset.field] = el.value;
+      if (el.type === 'checkbox') {
+        row[el.dataset.field] = el.checked;
+      } else {
+        row[el.dataset.field] = el.value;
+      }
     });
     rows.push(row);
   });

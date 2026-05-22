@@ -8,16 +8,14 @@
 .section-card{background:white;border-radius:10px;padding:20px 24px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
 .section-title{font-size:14px;font-weight:600;color:#1565C0;border-bottom:2px solid #E3F2FD;padding-bottom:8px;margin-bottom:14px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.form-row-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 .editable-table{width:100%;border-collapse:collapse;font-size:13px}
 .editable-table th{background:#1565C0;color:white;padding:8px 10px;text-align:left}
 .editable-table td{padding:0;border-bottom:1px solid #E2E8F0}
-.editable-table td input{width:100%;padding:7px 10px;border:none;background:transparent;font-size:13px;font-family:inherit}
+.editable-table td input[type=text],.editable-table td input[type=email]{width:100%;padding:7px 10px;border:none;background:transparent;font-size:13px;font-family:inherit}
 .editable-table td input:focus{background:#EFF6FF;outline:none}
 .editable-table tr:nth-child(even) td{background:#F8FAFC}
 .editable-table tr:nth-child(even) td input{background:transparent}
-.btn-danger{background:#EF4444;color:white;border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:12px}
-.btn-danger:hover{background:#DC2626}
+.cb-excluir{cursor:pointer;width:18px;height:18px;accent-color:#EF4444}
 </style>
 {% endblock %}
 
@@ -42,34 +40,45 @@
 {% if dados.partners %}
 <div class="section-card">
   <div class="section-title">👥 Tabela de Sócios/Gestores (editável)</div>
+  <p style="font-size:12px;color:#64748B;margin-bottom:8px">
+    Edite diretamente. Marque <strong style="color:#EF4444">Excluir</strong> na linha desejada e clique em 💾 Salvar.
+  </p>
+
+  <!-- CORREÇÃO: formulário único, sem formulários aninhados -->
   <form method="post" id="form-socios">{% csrf_token %}
     <input type="hidden" name="action" value="save_table">
     <input type="hidden" name="rows_json" id="rows-json">
     <div style="overflow-x:auto">
-    <table class="editable-table" id="socios-table">
-      <thead><tr><th>Nome</th><th>Cargo</th><th>E-mail</th><th>Telefone</th><th>Observações</th><th>Ação</th></tr></thead>
-      <tbody>
-      {% for p in dados.partners %}
-      <tr data-idx="{{ forloop.counter0 }}">
-        <td><input type="text" value="{{ p.nome }}" data-field="nome"></td>
-        <td><input type="text" value="{{ p.cargo }}" data-field="cargo"></td>
-        <td><input type="text" value="{{ p.email }}" data-field="email"></td>
-        <td><input type="text" value="{{ p.telefone }}" data-field="telefone"></td>
-        <td><input type="text" value="{{ p.observacoes }}" data-field="observacoes"></td>
-        <td style="padding:6px 10px">
-          <form method="post" style="display:inline">{% csrf_token %}
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="idx" value="{{ forloop.counter0 }}">
-            <button type="submit" class="btn-danger" onclick="return confirm('Excluir?')">🗑️</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+      <table class="editable-table" id="socios-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Cargo</th>
+            <th>E-mail</th>
+            <th>Telefone</th>
+            <th>Observações</th>
+            <th style="text-align:center;width:70px;color:#FCA5A5">Excluir</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in dados.partners %}
+          <tr>
+            <td><input type="text" value="{{ p.nome }}" data-field="nome"></td>
+            <td><input type="text" value="{{ p.cargo }}" data-field="cargo"></td>
+            <td><input type="text" value="{{ p.email }}" data-field="email"></td>
+            <td><input type="text" value="{{ p.telefone }}" data-field="telefone"></td>
+            <td><input type="text" value="{{ p.observacoes }}" data-field="observacoes"></td>
+            <td style="padding:8px;text-align:center">
+              <input type="checkbox" class="cb-excluir" data-field="excluir" title="Marcar para excluir">
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
     <br>
     <button type="button" class="btn btn-primary" onclick="saveTable()">💾 Salvar alterações</button>
+    <span style="font-size:12px;color:#94A3B8;margin-left:10px">Linhas com ✅ Excluir serão removidas ao salvar.</span>
   </form>
 </div>
 {% else %}
@@ -85,8 +94,12 @@ function saveTable() {
   var rows = [];
   document.querySelectorAll('#socios-table tbody tr').forEach(function(tr) {
     var row = {};
-    tr.querySelectorAll('input[data-field]').forEach(function(inp) {
-      row[inp.dataset.field] = inp.value;
+    tr.querySelectorAll('[data-field]').forEach(function(el) {
+      if (el.type === 'checkbox') {
+        row[el.dataset.field] = el.checked;
+      } else {
+        row[el.dataset.field] = el.value;
+      }
     });
     rows.push(row);
   });
