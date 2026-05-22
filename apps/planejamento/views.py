@@ -273,68 +273,109 @@ def fig_okr_gauge(okr: dict) -> str:
 
 def fig_swot_quadrant(swot_items: list) -> str:
     """
-    BUG FIX: labels dos quadrantes agora usam texto BRANCO sobre fundo colorido
-    (fg) em vez de texto escuro sobre fundo claro (confundia com o quadrante).
+    Matriz SWOT 4 quadrantes.
+    - SEM labels fixos nos quadrantes (Força/Fraqueza etc. removidos do quadro)
+    - Mostra APENAS os itens cadastrados com descrição em texto PRETO
+    - Ponto colorido + texto preto à direita
     """
     fig = go.Figure()
+
+    # Quadrante: (cx, cy, bg_color)
     quadrants = {
-        "Força":        (0.25, 0.75, "#D1FAE5", "#065F46"),
-        "Oportunidade": (0.75, 0.75, "#DBEAFE", "#1E3A8A"),
-        "Fraqueza":     (0.25, 0.25, "#FEE2E2", "#991B1B"),
-        "Ameaça":       (0.75, 0.25, "#FEF3C7", "#92400E"),
+        "Força":        (0.25, 0.75, "#D1FAE5"),
+        "Oportunidade": (0.75, 0.75, "#DBEAFE"),
+        "Fraqueza":     (0.25, 0.25, "#FEE2E2"),
+        "Ameaça":       (0.75, 0.25, "#FEF3C7"),
     }
 
-    for tipo, (cx, cy, bg, fg) in quadrants.items():
-        x0 = 0 if cx < 0.5 else 0.5
-        x1 = 0.5 if cx < 0.5 else 1
-        y0 = 0 if cy < 0.5 else 0.5
-        y1 = 0.5 if cy < 0.5 else 1
-        fig.add_shape(type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
-                      xref="paper", yref="paper",
-                      fillcolor=bg, line=dict(color="#CBD5E1", width=2))
-        # TEXTO BRANCO sobre fundo colorido escuro → sempre visível
-        fig.add_annotation(
-            x=cx, y=cy + 0.16,
+    # ── Desenha os 4 quadrantes (sem labels) ──────────────────────
+    for tipo, (cx, cy, bg) in quadrants.items():
+        x0 = 0   if cx < 0.5 else 0.5
+        x1 = 0.5 if cx < 0.5 else 1.0
+        y0 = 0   if cy < 0.5 else 0.5
+        y1 = 0.5 if cy < 0.5 else 1.0
+        fig.add_shape(
+            type="rect", x0=x0, x1=x1, y0=y0, y1=y1,
             xref="paper", yref="paper",
-            text=f"<b>{tipo}</b>",
-            showarrow=False,
-            font=dict(size=14, color="white"),
-            bgcolor=fg,
-            bordercolor=fg,
-            borderwidth=2,
-            borderpad=5,
-            opacity=0.95,
+            fillcolor=bg,
+            line=dict(color="#CBD5E1", width=2),
         )
 
-    for tipo, (cx, cy, bg, fg) in quadrants.items():
-        items = [s for s in swot_items if s.get("tipo") == tipo]
-        for i, item in enumerate(items):
-            jitter_x = (i % 3 - 1) * 0.07
-            jitter_y = -(i // 3) * 0.09
-            y_pos = cy - 0.06 + jitter_y
+    # ── Plota apenas os itens cadastrados ─────────────────────────
+    PRIO_COLOR = {"Alta": "#E53935", "Média": "#FB8C00", "Baixa": "#43A047"}
+
+    for tipo, (cx, cy, bg) in quadrants.items():
+        items = [s for s in (swot_items or []) if s.get("tipo") == tipo]
+
+        # Posição x do ponto: próximo à borda esquerda de cada quadrante
+        x_dot = 0.04 if cx < 0.5 else 0.54
+
+        # Posição y inicial: topo do quadrante menos margem
+        y_top = (cy + 0.45) if cy > 0.5 else (cy + 0.44)
+
+        for i, item in enumerate(items[:6]):          # máx 6 itens por quadrante
+            desc = item.get("descricao", "")
+            # Truncar texto longo para caber no quadrante
+            if len(desc) > 38:
+                desc = desc[:36] + "…"
+            prio    = item.get("prioridade", "Média")
+            y_pos   = y_top - i * 0.085
+
             fig.add_trace(go.Scatter(
-                x=[cx + jitter_x], y=[y_pos],
+                x=[x_dot],
+                y=[y_pos],
                 mode="markers+text",
-                marker=dict(size=18, color=SWOT_COLORS.get(tipo, BK_GRAY),
-                            line=dict(color="white", width=2)),
-                text=[item.get("prioridade", "")[:1]],
-                textfont=dict(color="white", size=10, family="Segoe UI Bold"),
-                textposition="middle center",
-                hovertext=f"<b>{item.get('prioridade','')}</b><br>{item.get('descricao','')}",
+                marker=dict(
+                    size=11,
+                    color=SWOT_COLORS.get(tipo, BK_GRAY),
+                    symbol="circle",
+                    line=dict(color="white", width=1.5),
+                ),
+                text=[f"  {desc}"],
+                textfont=dict(color="black", size=11, family="Segoe UI"),
+                textposition="middle right",
+                hovertext=(
+                    f"<b>{tipo}</b> | Prioridade: {prio}"
+                    f"<br>{item.get('descricao','')}"
+                ),
                 hoverinfo="text",
                 name=tipo,
                 showlegend=(i == 0),
+                legendgroup=tipo,
             ))
 
+    # ── Nomes dos quadrantes nos CANTOS (fora do quadro interno) ──
+    corner_labels = [
+        (0.01, 0.99, "FORÇAS",        "#065F46", "left",  "top"),
+        (0.51, 0.99, "OPORTUNIDADES", "#1E3A8A", "left",  "top"),
+        (0.01, 0.50, "FRAQUEZAS",     "#991B1B", "left",  "top"),
+        (0.51, 0.50, "AMEAÇAS",       "#92400E", "left",  "top"),
+    ]
+    for (x, y, lbl, color, xanchor, yanchor) in corner_labels:
+        fig.add_annotation(
+            x=x, y=y, xref="paper", yref="paper",
+            text=f"<b>{lbl}</b>",
+            showarrow=False,
+            font=dict(size=10, color=color),
+            xanchor=xanchor, yanchor=yanchor,
+            bgcolor="rgba(255,255,255,0.6)",
+            borderpad=2,
+        )
+
     fig.update_layout(
-        height=430,
+        height=440,
         paper_bgcolor="white",
         xaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
         yaxis=dict(showticklabels=False, showgrid=False, zeroline=False, range=[0, 1]),
-        margin=dict(l=10, r=10, t=30, b=10),
+        margin=dict(l=10, r=120, t=36, b=10),
         title=dict(text="Matriz SWOT", font=dict(size=14, color=BK_BLUE)),
         font=dict(family="Segoe UI"),
         hoverlabel=dict(bgcolor="white", font_size=12),
+        legend=dict(
+            orientation="v", x=1.02, y=0.5,
+            xanchor="left", yanchor="middle",
+            font=dict(size=11),
+        ),
     )
     return fig.to_json()
 
