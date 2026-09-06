@@ -192,7 +192,8 @@ def fig_swot_quadrant(swot_items):
     for tipo,(cx,cy,bg) in quadrants.items():
         fig.add_shape(type="rect",x0=0 if cx<0.5 else 0.5,x1=0.5 if cx<0.5 else 1,
                       y0=0 if cy<0.5 else 0.5,y1=0.5 if cy<0.5 else 1,
-                      xref="paper",yref="paper",fillcolor=bg,line=dict(color="#CBD5E1",width=2))
+                      xref="paper",yref="paper",fillcolor=bg,line=dict(color="#CBD5E1",width=2),
+                      layer="below")
     for tipo,(cx,cy,bg) in quadrants.items():
         items = [s for s in (swot_items or []) if s.get("tipo") == tipo]
         x_dot = 0.04 if cx < 0.5 else 0.54
@@ -230,15 +231,28 @@ def fig_okrs_overview(dados):
         tr = sum(float(m.get("realizado",0)) for m in o["meses"])
         names.append(o.get("nome","")[:28]); prevs.append(tp); reals.append(tr)
         pcts.append((tr/tp*100) if tp > 0 else 0)
+    # Cada KPI tem sua própria escala (unidades muito diferentes entre si — R$, %, un.,
+    # horas etc.). Plotar os valores absolutos lado a lado faz com que KPIs de valores
+    # baixos fiquem "achatados" e praticamente invisíveis ao lado de KPIs de valores altos.
+    # Para comparar todos os KPIs num único gráfico de forma justa, normalizamos cada um
+    # pelo seu próprio Planejado (=100%), mostrando o % de Realização — assim todas as
+    # barras usam a mesma escala (0–100%+), independente da grandeza de cada indicador.
+    colors = [BK_GREEN if p >= 95 else (BK_ORANGE if p >= 70 else BK_RED) for p in pcts]
+    hover = [f"<b>{n}</b><br>Planejado: {tp:,.2f}<br>Realizado: {tr:,.2f}<br>Realização: {p:.1f}%"
+             for n,tp,tr,p in zip(names,prevs,reals,pcts)]
     fig = go.Figure()
-    fig.add_trace(go.Bar(name="Planejado",x=names,y=prevs,marker_color=BK_BLUE_LIGHT,opacity=0.7))
-    fig.add_trace(go.Bar(name="Realizado",x=names,y=reals,marker_color=BK_GREEN))
-    fig.add_trace(go.Scatter(name="% Realização",x=names,y=pcts,mode="markers+text",yaxis="y2",
-                             marker=dict(size=10,color=BK_ORANGE),
-                             text=[f"{p:.0f}%" for p in pcts],textposition="top center"))
-    fig.update_layout(barmode="group",height=380,yaxis2=dict(overlaying="y",side="right",title="% Realização",range=[0,160]),
-                      paper_bgcolor="white",plot_bgcolor="#F8FAFC",margin=dict(l=40,r=60,t=40,b=60),
-                      font=dict(family="Segoe UI"),title="Visão Geral KPIs — Planejado vs Realizado")
+    fig.add_trace(go.Bar(name="% Realização",x=names,y=pcts,marker_color=colors,
+                         text=[f"{p:.0f}%" for p in pcts],textposition="outside",
+                         hovertext=hover,hoverinfo="text"))
+    max_pct = max(pcts) if pcts else 0
+    y_top = max(160, max_pct*1.2)
+    fig.add_hline(y=100,line_dash="dash",line_color=BK_GRAY,
+                  annotation_text="Meta (100%)",annotation_position="top left",
+                  annotation_font_color=BK_GRAY)
+    fig.update_layout(height=380,yaxis=dict(title="% Realização",range=[0,y_top]),
+                      paper_bgcolor="white",plot_bgcolor="#F8FAFC",margin=dict(l=40,r=40,t=40,b=60),
+                      font=dict(family="Segoe UI"),showlegend=False,
+                      title="Visão Geral KPIs — % de Realização vs Meta")
     return fig.to_json()
 
 def fig_actions_status(dados):
@@ -309,7 +323,7 @@ def _create_kpi_chart_image(okr):
 def build_word_report(dados, empresa: Empresa):
     from docx import Document
     from docx.shared import Inches, Pt, Cm, RGBColor
-    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
     from docx.oxml.ns import qn
     from docx.oxml import OxmlElement
     doc = Document(); today_str = date.today().strftime("%d/%m/%Y")
@@ -327,6 +341,18 @@ def build_word_report(dados, empresa: Empresa):
             for r in c.paragraphs[0].runs: r.font.bold=True; r.font.color.rgb=C_WHITE
             _shd(c,fill)
     def _cpct(pct): return C_GREEN if pct>=95 else (C_ORG if pct>=70 else C_RED)
+    def _add_multiline(paragraph, text):
+        # python-docx ignora \n dentro de um run (não quebra linha no Word).
+        # Aqui cada linha do texto digitado pelo usuário vira uma quebra de linha real.
+        lines = str(text).split("\n")
+        for i, line in enumerate(lines):
+            run = paragraph.add_run(line)
+            if i < len(lines) - 1:
+                run.add_break(WD_BREAK.LINE)
+        return paragraph
+    def _set_cell_multiline(cell, text):
+        cell.text = ""
+        _add_multiline(cell.paragraphs[0], text)
     # Capa
     for _ in range(4): doc.add_paragraph()
     h=doc.add_heading(f"Planejamento Estratégico",0); h.alignment=WD_ALIGN_PARAGRAPH.CENTER
@@ -344,13 +370,17 @@ def build_word_report(dados, empresa: Empresa):
             ("Pilares",strategic.get("pilares")or"—")]
     tbl=doc.add_table(rows=len(fields),cols=2); tbl.style="Table Grid"
     for i,(lbl,val) in enumerate(fields):
-        row=tbl.rows[i]; row.cells[0].text=lbl; row.cells[1].text=val
+        row=tbl.rows[i]; row.cells[0].text=lbl; _set_cell_multiline(row.cells[1], val)
         r0=row.cells[0].paragraphs[0].runs[0]; r0.font.bold=True; r0.font.color.rgb=C_BLUE
         row.cells[0].width=Cm(5); row.cells[1].width=Cm(12)
     if strategic.get("objetivos_estrategicos"):
         doc.add_paragraph(); p=doc.add_paragraph()
         r=p.add_run("Objetivos Estratégicos"); r.font.bold=True; r.font.color.rgb=C_BLUE
-        doc.add_paragraph(strategic["objetivos_estrategicos"])
+        _add_multiline(doc.add_paragraph(), strategic["objetivos_estrategicos"])
+    if strategic.get("notas"):
+        doc.add_paragraph(); p=doc.add_paragraph()
+        r=p.add_run("Notas / Hipóteses / Restrições"); r.font.bold=True; r.font.color.rgb=C_BLUE
+        _add_multiline(doc.add_paragraph(), strategic["notas"])
     doc.add_page_break()
     # KPIs resumo
     if okrs:
